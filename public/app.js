@@ -64,9 +64,22 @@ function closeNowPlaying() {
   Player.pending = null;
   $('#nowplaying').classList.add('hidden');
   document.body.classList.remove('np-open');
+  // remember the user dismissed the desktop side panel, so it won't auto-reopen
+  Player._npDismissed = true;
   renderNowPlaying();
   renderPlayButtons();
   updateLikeButtons();
+}
+/* On desktop (where Now Playing is a side panel, not a fullscreen overlay),
+   show it automatically when a song plays — like Spotify. Skip on mobile and
+   if the user has manually closed it. */
+function isDesktopWide() {
+  return window.matchMedia('(min-width: 1100px)').matches;
+}
+function autoOpenNowPlayingDesktop() {
+  if (!isDesktopWide() || Player._npDismissed) return;
+  $('#nowplaying').classList.remove('hidden');
+  document.body.classList.add('np-open');
 }
 function focusedSong() { return Player.pending || Player.current; }
 function isPreviewing() {
@@ -309,6 +322,7 @@ function playSong(song, queue = null, index = null, context = '') {
   Player.cued = false;
   Player.pending = null;
   Player.context = context || '';
+  Player._npDismissed = false; // explicit new playback — allow the desktop panel to show
   if (queue) {
     Player.queue = queue.map((q) => ({ ...normalizeSong(q), _user: false }));
     let idx = index ?? queue.findIndex((q) => q.videoId === song.videoId);
@@ -466,6 +480,7 @@ function startCurrent() {
   Player._lyricsDur = 0;
   lastLyricIdx = -1;
   syncFloatLyric('');
+  autoOpenNowPlayingDesktop(); // desktop: reveal the side panel when playback starts
   renderNowPlaying();
   renderQueue();
   updateLikeButtons();
