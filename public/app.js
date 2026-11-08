@@ -844,6 +844,7 @@ function renderNowPlaying() {
   artEl.textContent = np.artist || np.subtitle || '';
   artEl.classList.toggle('linkish', !!(songArtistBrowseId(np) || (np.artist || '').trim()));
   $('#np-bg').style.backgroundImage = np.thumbnail ? `url("${np.thumbnail}")` : 'none';
+  npAccent(np.thumbnail || ''); // tint the Now Playing screen from the displayed track
   syncFloatWidget();
 }
 function updateLikeButtons() {
@@ -3069,21 +3070,29 @@ let pipArtImg = null;
    The cover is loaded through /api/thumb so the canvas isn't CORS-tainted. */
 let _tintSrc = '';
 const _tintCache = new Map();
-function applyBarTint(rgb) {
-  // rgb: [r,g,b] or null to clear
+/* Extract a cover's dominant colour and write it to a CSS var.
+   Two independent targets:
+   --player-accent : the player bar (follows the PLAYING track)
+   --np-accent     : the Now Playing screen (follows the DISPLAYED track, incl. preview) */
+const _tintState = {
+  '--player-accent': { src: '' },
+  '--np-accent': { src: '' },
+};
+function setAccentVar(name, rgb) {
   const root = document.documentElement;
-  if (!rgb) { root.style.removeProperty('--player-accent'); return; }
-  root.style.setProperty('--player-accent', `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`);
+  if (!rgb) root.style.removeProperty(name);
+  else root.style.setProperty(name, `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`);
 }
-function coverAccent(url) {
-  if (!url) { applyBarTint(null); _tintSrc = ''; return; }
-  if (url === _tintSrc) return; // already applied for this cover
-  _tintSrc = url;
-  if (_tintCache.has(url)) { applyBarTint(_tintCache.get(url)); return; }
+function coverAccentVar(name, url) {
+  const st = _tintState[name];
+  if (!url) { setAccentVar(name, null); st.src = ''; return; }
+  if (url === st.src) return; // already applied for this cover
+  st.src = url;
+  if (_tintCache.has(url)) { setAccentVar(name, _tintCache.get(url)); return; }
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
-    if (url !== _tintSrc) return; // a newer song took over
+    if (url !== st.src) return; // a newer cover took over
     try {
       const n = 16; // tiny sample grid — fast and smooths out noise
       const c = document.createElement('canvas');
@@ -3104,12 +3113,16 @@ function coverAccent(url) {
       if (count) rgb = [Math.round(r / count), Math.round(g / count), Math.round(b / count)];
       else rgb = [80, 80, 80]; // fallback neutral when the art is flat/mono
       _tintCache.set(url, rgb);
-      if (url === _tintSrc) applyBarTint(rgb);
-    } catch { applyBarTint(null); }
+      if (url === st.src) setAccentVar(name, rgb);
+    } catch { setAccentVar(name, null); }
   };
-  img.onerror = () => { if (url === _tintSrc) applyBarTint(null); };
+  img.onerror = () => { if (url === st.src) setAccentVar(name, null); };
   img.src = '/api/thumb?url=' + encodeURIComponent(url);
 }
+// player bar: follows the playing track
+function coverAccent(url) { coverAccentVar('--player-accent', url); }
+// Now Playing screen: follows the displayed track (preview-aware)
+function npAccent(url) { coverAccentVar('--np-accent', url); }
 let pipArtSrc = '';
 function loadPipArt(url) {
   if (!url || url === pipArtSrc) return;
