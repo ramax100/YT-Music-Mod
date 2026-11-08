@@ -249,12 +249,14 @@ a { color: inherit; }
   flex: 1; overflow-y: auto; min-width: 0; min-height: 0;
   background: var(--main-bg);
   border-radius: var(--radius);
-  background-image: linear-gradient(180deg, hsl(var(--tint), 32%, 22%) 0%, var(--main-bg) 340px);
+  /* Spotify's home tint is subtle and fades quickly to the dark base.
+     Lower saturation/lightness + a mid stop keeps it from looking green. */
+  background-image: linear-gradient(180deg, hsl(var(--tint), 20%, 16%) 0%, color-mix(in srgb, hsl(var(--tint), 16%, 12%) 40%, var(--main-bg)) 120px, var(--main-bg) 280px);
   padding-bottom: 32px;
   transition: background-image 0.6s ease;
 }
 html[data-theme="light"] #main {
-  background-image: linear-gradient(180deg, hsl(var(--tint), 45%, 86%) 0%, var(--main-bg) 340px);
+  background-image: linear-gradient(180deg, hsl(var(--tint), 30%, 88%) 0%, var(--main-bg) 280px);
 }
 #topbar {
   position: sticky; top: 0; z-index: 20;
@@ -314,24 +316,28 @@ html[data-theme="light"] .tb-btn { background: rgba(0, 0, 0, 0.08); color: var(-
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-bottom: 32px;
+  gap: 8px 12px;
+  margin-bottom: 28px;
 }
 @media (min-width: 900px) { .quick-grid { grid-template-columns: repeat(4, 1fr); } }
 .quick-card {
-  display: flex; align-items: center; gap: 12px;
-  background: hsla(0, 0%, 100%, 0.08);
-  border-radius: 6px; overflow: hidden; height: 64px;
-  text-align: left; font-weight: 700; font-size: 14.5px;
+  display: flex; align-items: center; gap: 10px;
+  background: hsla(0, 0%, 100%, 0.09);
+  border-radius: 6px; overflow: hidden; height: 56px;
+  text-align: left; font-weight: 600; font-size: 13.5px;
   position: relative; min-width: 0;
   transition: background 0.18s, transform 0.18s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 html[data-theme="light"] .quick-card { background: rgba(0, 0, 0, 0.05); box-shadow: none; }
 .quick-card:hover { background: hsla(0, 0%, 100%, 0.16); }
 html[data-theme="light"] .quick-card:hover { background: rgba(0, 0, 0, 0.09); }
-.quick-card img { width: 64px; height: 64px; object-fit: cover; background: var(--elevated); flex-shrink: 0; }
-.quick-card .qc-t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 44px; }
+.quick-card img { width: 56px; height: 56px; object-fit: cover; background: var(--elevated); flex-shrink: 0; }
+/* two-line title like Spotify, instead of a single truncated line */
+.quick-card .qc-t {
+  min-width: 0; padding-right: 8px; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 13.5px;
+}
 .quick-card .play-ov {
   position: absolute; right: 10px;
   width: 40px; height: 40px; border-radius: 50%;
@@ -343,6 +349,8 @@ html[data-theme="light"] .quick-card:hover { background: rgba(0, 0, 0, 0.09); }
 }
 .quick-card:hover .play-ov { opacity: 1; transform: none; }
 .quick-card .play-ov .ic { width: 18px; height: 18px; }
+/* touch devices have no hover: the overlay never shows, so don't reserve space for it */
+@media (hover: none) { .quick-card .play-ov { display: none; } }
 
 /* shelf / carousel */
 .shelf { margin-bottom: 34px; }
@@ -398,8 +406,8 @@ html[data-theme="light"] .car-btn {
 .card .art .art-ph { width: 100%; height: 100%; }
 .art-ph-track { width: 40px; height: 40px; border-radius: 4px; }
 .art-ph-track .ic { width: 18px; height: 18px; }
-.art-ph-quick { width: 64px; height: 64px; flex-shrink: 0; }
-.art-ph-quick .ic { width: 22px; height: 22px; }
+.art-ph-quick { width: 56px; height: 56px; flex-shrink: 0; }
+.art-ph-quick .ic { width: 20px; height: 20px; }
 .art-ph-sq { width: 36px; height: 36px; border-radius: 4px; }
 .art-ph-sq .ic { width: 16px; height: 16px; }
 .art-ph-sr { width: 148px; height: 148px; border-radius: 8px; flex-shrink: 0; }
