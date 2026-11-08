@@ -2584,23 +2584,34 @@ function openAddToPlaylist(song) {
   const actions = $('.modal-actions');
   if (actions) actions.classList.remove('hidden');
   $('#modal-title').textContent = 'Add to playlist';
+  const inPlaylist = (p) => p.tracks.some((t) => t.videoId === song.videoId);
   const render = () => {
     const pls = Library.playlists;
+    const liked = Library.isFav(song.videoId);
+    const showFilter = pls.length > 6;
     body.innerHTML = `<div class="q-modal-row">
         <button class="pill-btn" id="q-playnext">${icon('i-next')}<span>Play next</span></button>
         <button class="pill-btn" id="q-add">${icon('i-queue')}<span>Add to queue</span></button>
       </div>
       <input id="newpl-name" placeholder="New playlist name…">
       <button class="pill-btn primary" id="newpl-create" style="margin-bottom:12px">Create & add</button>
-      ${pls.length ? `<div class="pl-list-label">Your playlists</div>` : ''}
-      ${pls.map((p) => {
+      <div class="pl-list-label">Your playlists</div>
+      ${showFilter ? `<input id="pl-filter" class="pl-filter" placeholder="Find a playlist…" autocomplete="off">` : ''}
+      <button type="button" class="modal-row pl-pick" data-liked="1">
+        <span class="pl-pick-ph liked">${icon('i-heart-f')}</span>
+        <span class="pl-pick-meta"><span class="pl-pick-name">Liked Songs</span><span class="pl-pick-count">${Library.favorites.length} song${Library.favorites.length === 1 ? '' : 's'}</span></span>
+        <span class="pl-check">${liked ? icon('i-heart-f') : ''}</span>
+      </button>
+      <div id="pl-pick-list">${pls.map((p) => {
         const cover = p.tracks[0] && p.tracks[0].thumbnail;
         const n = p.tracks.length;
-        return `<button type="button" class="modal-row pl-pick" data-id="${p.id}">
+        const has = inPlaylist(p);
+        return `<button type="button" class="modal-row pl-pick${has ? ' in' : ''}" data-id="${p.id}" data-name="${esc(p.name.toLowerCase())}">
           ${cover ? `<img class="pl-pick-art" src="${esc(cover)}" alt="">` : `<span class="pl-pick-ph">${icon('i-note')}</span>`}
-          <span class="pl-pick-meta"><span class="pl-pick-name">${esc(p.name)}</span><span class="pl-pick-count">${n} song${n === 1 ? '' : 's'}</span></span>
+          <span class="pl-pick-meta"><span class="pl-pick-name">${esc(p.name)}</span><span class="pl-pick-count">${has ? 'Added · ' : ''}${n} song${n === 1 ? '' : 's'}</span></span>
+          <span class="pl-check">${has ? icon('i-plus') : ''}</span>
         </button>`;
-      }).join('') || '<div class="empty-note">No playlists yet</div>'}`;
+      }).join('') || '<div class="empty-note">No playlists yet</div>'}</div>`;
     $('#q-playnext').addEventListener('click', () => { queueSong(song, true); closeModal(); });
     $('#q-add').addEventListener('click', () => { queueSong(song, false); closeModal(); });
     $('#newpl-create').addEventListener('click', () => {
@@ -2611,11 +2622,24 @@ function openAddToPlaylist(song) {
       toast(`Added to "${name}"`);
       modal.classList.add('hidden');
     });
-    $$('.modal-row', body).forEach((r) => r.addEventListener('click', () => {
-      Library.addToPlaylist(r.dataset.id, song);
-      toast('Added to playlist');
-      modal.classList.add('hidden');
+    // Liked Songs row toggles favorite
+    const likedRow = $('.pl-pick[data-liked]', body);
+    if (likedRow) likedRow.addEventListener('click', () => { Library.toggleFav(song); closeModal(); });
+    // playlist rows: toggle membership (add if absent, remove if already in)
+    $$('.pl-pick[data-id]', body).forEach((r) => r.addEventListener('click', () => {
+      const pl = Library.playlists.find((p) => p.id === r.dataset.id);
+      if (!pl) return;
+      if (inPlaylist(pl)) { Library.removeFromPlaylist(pl.id, song.videoId); toast(`Removed from "${pl.name}"`); }
+      else { Library.addToPlaylist(pl.id, song); toast(`Added to "${pl.name}"`); }
+      render(); // refresh indicators in place
     }));
+    const filter = $('#pl-filter', body);
+    if (filter) filter.addEventListener('input', () => {
+      const q = filter.value.trim().toLowerCase();
+      $$('#pl-pick-list .pl-pick', body).forEach((r) => {
+        r.style.display = !q || (r.dataset.name || '').includes(q) ? '' : 'none';
+      });
+    });
   };
   render();
   modal.classList.remove('hidden');
