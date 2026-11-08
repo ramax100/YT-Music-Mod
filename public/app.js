@@ -620,15 +620,21 @@ setInterval(() => {
   const now = Date.now();
   if (playing && _lastTick) Library.addListenTime(Player.current.videoId, Math.min(2, (now - _lastTick) / 1000));
   _lastTick = now;
+  const dur = Player.yt.getDuration() || 0;
   // SponsorBlock auto-skip
   if (playing && Player.sbEnabled && Player.sbSegments.length) {
     const seg = Player.sbSegments.find((g) => cur >= g.start && cur < g.end - 0.3);
     if (seg) {
-      Player.yt.seekTo(seg.end, true);
-      toast(`⏩ Skipped ${seg.category.replace('_', ' ')} (SponsorBlock)`);
+      // if the segment runs to (near) the end of the track, don't seek past it —
+      // just advance to the next track instead of landing in dead air
+      if (dur && seg.end >= dur - 1) {
+        nextTrack(true);
+      } else {
+        Player.yt.seekTo(seg.end, true);
+        toast(`⏩ Skipped ${seg.category.replace(/_/g, ' ')} (SponsorBlock)`);
+      }
     }
   }
-  const dur = Player.yt.getDuration() || 0;
   const pct = dur ? (cur / dur) * 100 : 0;
   $('#mini-progress-fill').style.width = pct + '%';
   const knob = $('.pb-knob');
@@ -658,11 +664,17 @@ function renderPlayButtons() {
 }
 
 /* ================= SponsorBlock / votes / speed / video ================= */
+let sbReqId = 0; // guards against a stale response overwriting a newer song's segments
 async function loadSponsorBlock(videoId) {
+  const myReq = ++sbReqId;
   Player.sbSegments = [];
+  if (!videoId) return;
   try {
     const d = await api(`/api/sponsorblock?videoId=${encodeURIComponent(videoId)}`);
-    Player.sbSegments = d.segments || [];
+    // a newer song started while we were fetching — drop this response
+    if (myReq !== sbReqId) return;
+    if (!Player.current || Player.current.videoId !== videoId) return;
+    Player.sbSegments = Array.isArray(d.segments) ? d.segments : [];
     if (Player.sbSegments.length && Player.sbEnabled) toast(`SponsorBlock: ${Player.sbSegments.length} segment(s) will be skipped`);
   } catch {}
 }

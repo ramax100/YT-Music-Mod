@@ -313,11 +313,16 @@ app.get('/api/sponsorblock', async (req, res) => {
     if (r.status === 404) return res.json({ segments: [] });
     if (!r.ok) return res.json({ segments: [] });
     const arr = await r.json();
-    res.json({
-      segments: arr
-        .filter((s) => s.actionType === 'skip')
-        .map((s) => ({ category: s.category, start: s.segment[0], end: s.segment[1] })),
-    });
+    const segments = (Array.isArray(arr) ? arr : [])
+      // skip-type only, and only community-trusted segments (SponsorBlock
+      // recommends ignoring segments with negative votes unless locked)
+      .filter((s) => s && s.actionType === 'skip' && Array.isArray(s.segment))
+      .filter((s) => s.locked === 1 || s.locked === true || typeof s.votes !== 'number' || s.votes >= 0)
+      .map((s) => ({ category: s.category, start: Number(s.segment[0]), end: Number(s.segment[1]) }))
+      // valid, sane ranges only
+      .filter((s) => Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start && s.start >= 0)
+      .sort((a, b) => a.start - b.start);
+    res.json({ segments });
   } catch {
     res.json({ segments: [] });
   }
