@@ -1597,12 +1597,14 @@ async function viewHome(view) {
   const dateLine = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
   let html = `<div class="hello-row"><div><div class="greeting">${esc(dateLine)}</div><h1 class="page-title">${greet}</h1></div></div>`;
   if (hist.length) {
-    html += `<div class="shelf-title">Recently played</div><div class="quick-grid">${hist.slice(0, 8).map((s) => quickCardHTML({ ...s, type: 'song', subtitle: s.artist })).join('')}</div>`;
+    // Spotify-style: simple track rows (thumbnail + title + artist), not grid cards
+    html += `<div class="shelf recent-shelf"><div class="shelf-title">Recently played</div>
+      <div class="track-list">${hist.slice(0, 6).map((s) => trackRowHTML({ ...s, subtitle: s.artist })).join('')}</div></div>`;
   }
   html += `<div id="mix-slot"></div>`;
-  if (hist.length > 8) {
+  if (hist.length > 6) {
     html += `<div class="shelf"><div class="shelf-title">Jump back in</div>${carouselHTML(hist
-      .slice(8).map((s) => cardHTML({ ...s, type: 'song', subtitle: s.artist })).join(''))}</div>`;
+      .slice(6).map((s) => cardHTML({ ...s, type: 'song', subtitle: s.artist })).join(''))}</div>`;
   }
   if (favs.length) {
     html += `<div class="shelf"><div class="shelf-title">Liked songs</div>
