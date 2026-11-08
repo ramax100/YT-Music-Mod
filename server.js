@@ -607,11 +607,19 @@ app.get('/api/download-progress', async (req, res) => {
     const r = await fetch(purl, { headers: { 'User-Agent': DL_UA } });
     if (!r.ok) throw new Error(`progress -> ${r.status}`);
     const d = await r.json();
+    const progress = Number(d.progress) || 0;
+    const url = d.download_url || null;
+    const done = (d.success === 1 || d.success === true) && !!url;
+    // The converter reports completion at progress 1000. If it hits 1000 (or
+    // flags success/error) without a usable download_url, the job failed —
+    // tell the client so it can stop instead of polling until timeout.
+    const failed = !done && (progress >= 1000 || d.success === false || d.error || d.status === 'error');
     res.json({
-      progress: d.progress || 0,
-      done: !!d.success && !!d.download_url,
-      url: d.download_url || null,
-      text: d.text || '',
+      progress,
+      done,
+      failed: !!failed,
+      url,
+      text: d.text || d.message || d.error || '',
     });
   } catch (e) {
     res.status(502).json({ error: e.message });

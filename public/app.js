@@ -1080,6 +1080,8 @@ async function loadRelated(force = false) {
 
 /* ================= download (via converter service, direct save) ================= */
 const activeDownloads = new Set();
+// carries a user-facing reason so the catch can show it verbatim
+class DownloadError extends Error {}
 function downloadFilename(song) {
   const t = displayTitle(song && song.title) || 'track';
   const a = String((song && song.artist) || '').split(',')[0].trim();
@@ -1102,25 +1104,41 @@ async function downloadSong(song) {
   activeDownloads.add(song.videoId);
   toast(`Preparing "${song.title}" (320kbps MP3)…`);
   try {
-    const st = await api(`/api/download-start?videoId=${encodeURIComponent(song.videoId)}`);
-    if (!st.progressUrl) throw new Error('no progress url');
+    let st;
+    try {
+      st = await api(`/api/download-start?videoId=${encodeURIComponent(song.videoId)}`);
+    } catch {
+      throw new DownloadError('The converter is unavailable right now. Try again later.');
+    }
+    if (!st || !st.progressUrl) throw new DownloadError('This song can’t be converted right now.');
+
     let url = null;
     let lastProg = -1;
-    for (let i = 0; i < 60; i++) {
+    let failReason = '';
+    // ~4 min: 96 polls × 2.5s. Longer tracks / busy servers need the headroom.
+    for (let i = 0; i < 96; i++) {
       if (i) await new Promise((r) => setTimeout(r, 2500));
+      let p;
       try {
-        const p = await api(`/api/download-progress?progressUrl=${encodeURIComponent(st.progressUrl)}`);
-        if (p.done && p.url) { url = p.url; break; }
-        // loader.to reports progress on a 0–1000 scale (1000 = done).
-        const raw = Number(p.progress) || 0;
-        const pct = Math.min(99, Math.max(0, Math.round(raw / 10)));
-        if (pct !== lastProg) {
-          lastProg = pct;
-          toast(pct <= 5 && p.text ? String(p.text) : `Converting "${song.title}"… ${pct}%`);
-        }
-      } catch {}
+        p = await api(`/api/download-progress?progressUrl=${encodeURIComponent(st.progressUrl)}`);
+      } catch {
+        continue; // transient network hiccup — keep polling
+      }
+      if (p.done && p.url) { url = p.url; break; }
+      if (p.failed) { failReason = String(p.text || '').trim(); break; } // converter gave up
+      const raw = Number(p.progress) || 0;
+      const pct = Math.min(99, Math.max(0, Math.round(raw / 10)));
+      if (pct !== lastProg) {
+        lastProg = pct;
+        toast(pct <= 5 && p.text ? String(p.text) : `Converting "${song.title}"… ${pct}%`);
+      }
     }
-    if (!url) throw new Error('timeout');
+    if (!url) {
+      throw new DownloadError(failReason
+        ? `Download failed: ${failReason}`
+        : 'Download timed out — the converter took too long. Try again.');
+    }
+
     toast(`Downloading "${song.title}"…`);
     const name = downloadFilename(song);
     try {
@@ -1131,11 +1149,13 @@ async function downloadSong(song) {
       clickDownload(obj, name);
       setTimeout(() => URL.revokeObjectURL(obj), 8000);
     } catch {
+      // cross-origin fetch blocked by CORS — hand the direct URL to the browser,
+      // which downloads it natively
       clickDownload(url, name);
     }
     toast('Download started');
   } catch (e) {
-    toast('Download failed — try again later');
+    toast(e instanceof DownloadError ? e.message : 'Download failed — try again later');
   } finally {
     activeDownloads.delete(song.videoId);
   }
