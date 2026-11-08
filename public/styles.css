@@ -646,6 +646,7 @@ body.np-open.has-player #nowplaying { margin-bottom: var(--player-h); }
 .pb-vol-ic { color: var(--muted); line-height: 0; }
 .pb-vol-ic .ic { width: 16px; height: 16px; }
 .vol-ic { width: 16px; height: 16px; color: var(--muted); }
+#mini-mute.on .ic, #np-mute.on .ic { color: var(--accent-bright); }
 #mini-volume, #np-volume { accent-color: var(--bar-fill); height: 4px; cursor: pointer; }
 #mini-volume { width: 93px; }
 #mini-volume:hover, #np-volume:hover { accent-color: var(--accent-bright); }
