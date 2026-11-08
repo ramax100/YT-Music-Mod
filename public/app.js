@@ -2854,6 +2854,8 @@ function setSidebarCollapsed(on) {
   store.set('lib_collapsed', !!on);
   const c = $('#lib-collapse');
   if (c) c.title = on ? 'Expand your library' : 'Collapse your library';
+  const t = $('#lib-title-btn');
+  if (t) t.title = on ? 'Expand your library' : 'Open your library';
 }
 const libCollapseBtn = $('#lib-collapse');
 if (libCollapseBtn) libCollapseBtn.addEventListener('click', (e) => {
