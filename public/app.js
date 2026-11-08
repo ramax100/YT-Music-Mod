@@ -3447,10 +3447,13 @@ setInterval(() => {
 }, 1200);
 
 
-/* cleanup: unregister any previously installed service worker */
+/* PWA: register a minimal (no-cache) service worker so the app is installable.
+   Also clear any legacy 'smw-' caches left by the old service worker. */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
   if (window.caches) caches.keys().then((ks) => ks.forEach((k) => k.startsWith('smw-') && caches.delete(k))).catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
 }
 
 /* boot */
