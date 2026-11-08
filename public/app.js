@@ -25,6 +25,8 @@ const fmtTime = (s) => {
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;
+  // optional type for the accent bar colour: 'error' (red) else green
+  t.classList.toggle('toast-error', /fail|error|unavailable|can’t|cannot|timed out|bad /i.test(String(msg)));
   t.classList.remove('hidden');
   clearTimeout(toast._t);
   toast._t = setTimeout(() => t.classList.add('hidden'), 2200);
