@@ -543,7 +543,20 @@ html[data-theme="light"] .detail-head {
 #related-list .card .art { width: 124px; height: 124px; }
 #related-list .card .t { font-size: 13px; margin-top: 8px; }
 #related-list .card .s { font-size: 12px; }
-.detail-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.detail-actions { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+/* Big round green play button on detail pages (Spotify) */
+.pill-btn.play-main {
+  width: 56px; height: 56px; padding: 0; border-radius: 50%;
+  justify-content: center; flex-shrink: 0;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+.pill-btn.play-main span { display: none; } /* icon-only, label kept for a11y via title */
+.pill-btn.play-main .ic { width: 24px; height: 24px; margin-left: 2px; } /* optical centering */
+.pill-btn.play-main:hover { transform: scale(1.06); background: #3be477; }
+@media (max-width: 860px) {
+  .pill-btn.play-main { width: 48px; height: 48px; }
+  .pill-btn.play-main .ic { width: 20px; height: 20px; }
+}
 .pill-btn {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 18px; background: transparent; border: 1px solid color-mix(in srgb, var(--text) 28%, transparent);

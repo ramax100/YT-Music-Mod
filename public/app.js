@@ -1924,7 +1924,7 @@ function viewLibrary(view, tab) {
         subtitle: `${f.length} song${f.length === 1 ? '' : 's'}`,
         gradient: 'liked',
         actions:
-          `<button class="pill-btn primary" id="fav-play">${icon('i-play')}<span>Play all</span></button>` +
+          `<button class="pill-btn primary play-main" id="fav-play" title="Play all">${icon('i-play')}<span>Play all</span></button>` +
           `<button class="pill-btn" id="fav-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>`,
       });
       body = head + trackHeadHTML() + `<div class="track-list">${f.map((s, i) => trackRowHTML({ ...s, subtitle: s.artist, tn: i + 1 })).join('')}</div>`;
@@ -2141,7 +2141,7 @@ function viewLocalPlaylist(view, pid) {
     cover: pl.tracks[0] && pl.tracks[0].thumbnail,
     gradient: 'playlist',
     actions:
-      `<button class="pill-btn primary" id="pl-play">${icon('i-play')}<span>Play</span></button>` +
+      `<button class="pill-btn primary play-main" id="pl-play" title="Play">${icon('i-play')}<span>Play</span></button>` +
       `<button class="pill-btn" id="pl-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>` +
       `<button class="pill-btn" id="pl-rename">${icon('i-note')}<span>Rename</span></button>` +
       `<button class="pill-btn" id="pl-del">${icon('i-trash')}<span>Delete</span></button>`,
@@ -2213,7 +2213,7 @@ async function viewBrowse(view, id, kind, extraParams) {
       <div class="detail-info"><div class="detail-kicker">${kick}</div><h1>${esc(h.title)}</h1>
         <div class="sub">${esc([h.strapline, h.subtitle].filter(Boolean).join(' • '))}${h.description ? `<br><span style="font-size:12.5px">${esc(h.description.slice(0, 260))}${h.description.length > 260 ? '…' : ''}</span>` : ''}</div>
         <div class="detail-actions">
-          ${d.tracks.length ? `<button class="pill-btn primary" id="br-play">${icon('i-play')}<span>Play</span></button><button class="pill-btn" id="br-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>` : ''}
+          ${d.tracks.length ? `<button class="pill-btn primary play-main" id="br-play" title="Play">${icon('i-play')}<span>Play</span></button><button class="pill-btn" id="br-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>` : ''}
           <button class="pill-btn" id="br-save">${icon(Library.isSaved(id) ? 'i-save-f' : 'i-save')}<span>${Library.isSaved(id) ? 'Saved' : 'Save'}</span></button>
         </div>
       </div></div>`;
