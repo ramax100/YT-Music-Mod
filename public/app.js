@@ -1242,7 +1242,7 @@ function trackRowHTML(it, playing = false, extraBtn = '') {
     ${tn}${qn}
     ${coverHTML(it.thumbnail, 'track')}
     <div class="tmeta"><div class="tt">${esc(displayTitle(it.title))}</div><div class="ts">${esc(it.artist || it.subtitle || '')}</div></div>
-    ${it.duration ? `<span class="tdur">${esc(it.duration)}</span>` : ''}
+    <span class="tdur">${it.duration ? esc(it.duration) : ''}</span>
     <button class="tbtn btn-fav" title="Favorite">${icon(Library.isFav(it.videoId) ? 'i-heart-f' : 'i-heart-o')}</button>
     <button class="tbtn btn-queue" title="Add to queue">${icon('i-queue')}</button>
     <button class="tbtn btn-addpl" title="Add to playlist">${icon('i-plus')}</button>
