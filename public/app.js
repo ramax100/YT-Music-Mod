@@ -74,7 +74,8 @@ function closeNowPlaying() {
    show it automatically when a song plays — like Spotify. Skip on mobile and
    if the user has manually closed it. */
 function isDesktopWide() {
-  return window.matchMedia('(min-width: 1100px)').matches;
+  // matches the CSS breakpoint where Now Playing becomes a side panel
+  return window.matchMedia('(min-width: 900px)').matches;
 }
 function autoOpenNowPlayingDesktop() {
   if (!isDesktopWide() || Player._npDismissed) return;
