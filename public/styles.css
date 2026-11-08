@@ -215,14 +215,25 @@ body.lib-collapsed #sidebar .lib-box { overflow: hidden; }
   font-weight: 800; font-size: 19px; padding: 8px 12px 16px;
   letter-spacing: -0.04em;
 }
-.logo-img {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  flex-shrink: 0;
-  background: transparent;
-  display: block;
+/* sidebar brand: show ONLY the dragon mark (crop out the 'RICH MUSIC' text
+   baked into the image) and blend the black bg away on the dark sidebar */
+.logo-mark {
+  width: 40px; height: 40px; flex-shrink: 0;
+  overflow: hidden; display: block; border-radius: 8px;
 }
+.logo-img {
+  display: block;
+  width: 100%;
+  /* the dragon sits in the upper ~16-62% of the 1080x1278 art; crop to it */
+  height: 220%;
+  object-fit: cover;
+  object-position: center 20%;
+  mix-blend-mode: screen; /* black background disappears over the dark UI */
+}
+/* light theme: screen-blend would erase the white dragon on a white bar, so
+   keep the mark on its own dark rounded tile instead */
+html[data-theme="light"] .logo-mark { background: #121212; }
+html[data-theme="light"] .logo-img { mix-blend-mode: normal; }
 #nav-desktop { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
   display: flex; align-items: center; gap: 18px; padding: 9px 12px;
