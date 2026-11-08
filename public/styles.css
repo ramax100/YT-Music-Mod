@@ -712,20 +712,25 @@ body.np-open.has-player #nowplaying { margin-bottom: var(--player-h); }
 /* ---------- now playing ---------- */
 #nowplaying {
   position: fixed; inset: 0; z-index: 60;
-  background: #121212;
+  /* base tinted with the current cover's accent colour, fading to dark —
+     so the whole Now Playing screen takes on the song's colour (Spotify) */
+  background:
+    linear-gradient(180deg, rgba(var(--np-accent, 30, 30, 30), 0.55) 0%, rgba(18, 18, 18, 0.9) 55%, #121212 100%),
+    #121212;
   color: #fff;
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease, background 0.6s ease;
 }
 #nowplaying.hidden { transform: translateY(100%); pointer-events: none; opacity: 0; }
 #np-bg {
   position: absolute; inset: 0; background-size: cover; background-position: center;
-  filter: blur(80px) brightness(0.22) saturate(1.2); transform: scale(1.45);
+  filter: blur(80px) brightness(0.3) saturate(1.3); transform: scale(1.45);
+  opacity: 0.55; /* let the accent base show through */
   transition: background-image 0.6s ease;
 }
 #np-bg::after {
   content: ""; position: absolute; inset: 0;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.55) 40%, rgba(0, 0, 0, 0.78) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.45) 40%, rgba(0, 0, 0, 0.7) 100%);
 }
 html[data-theme="light"] #np-bg::after {
   background:
