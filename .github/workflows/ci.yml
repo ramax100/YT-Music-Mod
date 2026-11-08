@@ -1,0 +1,34 @@
+name: CI
+
+# Lightweight checks that run on every pull request into main and on pushes to
+# main. No dependency install is required — these are fast static checks that
+# guard against the most common breakage (syntax errors, invalid config JSON).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax-check JavaScript
+        run: |
+          node --check server.js
+          node --check api/index.js
+          node --check public/app.js
+
+      - name: Validate JSON config
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json OK')"
+          node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8')); console.log('vercel.json OK')"
