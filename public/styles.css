@@ -146,12 +146,17 @@ body.lib-collapsed #sidebar .nav-item span,
 body.lib-collapsed #sidebar .lib-title span,
 body.lib-collapsed #sidebar .sidebar-footer,
 body.lib-collapsed #sidebar #side-queue,
-body.lib-collapsed #sidebar #lib-list,
 body.lib-collapsed #sidebar .lib-controls,
-body.lib-collapsed #sidebar .lib-scroll,
+body.lib-collapsed #sidebar .lr-meta,
 body.lib-collapsed #sidebar #side-q-clear,
 body.lib-collapsed #sidebar #lib-collapse,
 body.lib-collapsed #sidebar #side-queue-btn span { display: none !important; }
+/* collapsed: keep the library list but show only the cover thumbnails (Spotify) */
+body.lib-collapsed #sidebar #lib-list { overflow: visible; }
+body.lib-collapsed #sidebar .lib-scroll { overflow-y: auto; align-items: center; }
+body.lib-collapsed #sidebar .lib-row { justify-content: center; padding: 6px 0; gap: 0; width: 100%; }
+body.lib-collapsed #sidebar .lib-row img,
+body.lib-collapsed #sidebar .lib-row .lib-ph { width: 48px; height: 48px; }
 /* collapsed layout: neat, centered, icon-only */
 body.lib-collapsed #sidebar .side-box { padding: 8px 0; }
 body.lib-collapsed #sidebar .logo { justify-content: center; padding: 6px 0 10px; }
@@ -165,9 +170,15 @@ body.lib-collapsed #sidebar .lib-title {
 body.lib-collapsed #sidebar .lib-head { justify-content: center; padding: 0; }
 body.lib-collapsed #sidebar .nav-item .ic,
 body.lib-collapsed #sidebar .lib-title .ic { width: 24px; height: 24px; }
+/* make the library icon an obvious "expand" affordance while collapsed */
+body.lib-collapsed #sidebar .lib-title {
+  background: var(--hover-strong); color: var(--text);
+}
+body.lib-collapsed #sidebar .lib-title:hover { background: color-mix(in srgb, var(--text) 18%, transparent); transform: scale(1.04); }
 /* boxes shrink to fit their single icon instead of stretching to fill height */
-body.lib-collapsed #sidebar .q-box,
-body.lib-collapsed #sidebar .lib-box { flex: 0 0 auto; max-height: none; min-height: 0; overflow: visible; }
+/* Queue box shrinks to its icon; Library box keeps flexing so covers can scroll */
+body.lib-collapsed #sidebar .q-box { flex: 0 0 auto; max-height: none; min-height: 0; overflow: visible; }
+body.lib-collapsed #sidebar .lib-box { overflow: hidden; }
 .side-box {
   background: var(--main-bg);
   border-radius: var(--radius);
