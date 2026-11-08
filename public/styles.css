@@ -1194,13 +1194,28 @@ body.float-mode.has-player #sidebar { margin-bottom: 0; }
 #np-float.on { border-color: var(--accent-bright); }
 
 #toast {
-  position: fixed; bottom: calc(var(--player-h) + 18px); left: 50%; transform: translateX(-50%);
-  background: var(--accent-bright); color: #000; padding: 12px 24px;
-  border-radius: 999px; font-size: 14px; font-weight: 700; z-index: 90;
-  transition: opacity 0.3s, transform 0.3s;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  position: fixed; bottom: calc(var(--player-h) + 18px); left: 50%;
+  transform: translateX(-50%) translateY(0);
+  /* Spotify-style: dark pill with a thin accent edge + white text */
+  background: #2a2a2a; color: #fff;
+  padding: 13px 22px; max-width: min(460px, calc(100vw - 32px));
+  border-radius: 10px; font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  line-height: 1.35; text-align: center; z-index: 90;
+  display: inline-flex; align-items: center; gap: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5), inset 0 0 0 1px hsla(0, 0%, 100%, 0.07);
+  transition: opacity 0.28s var(--ease), transform 0.28s var(--ease);
 }
-#toast.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(8px); }
+/* a green accent bar on the left, like Spotify's confirmation toasts */
+#toast::before {
+  content: ""; width: 4px; align-self: stretch; border-radius: 99px;
+  background: var(--accent-bright); flex-shrink: 0;
+}
+#toast.toast-error::before { background: #e13300; } /* red bar for failures */
+html[data-theme="light"] #toast {
+  background: #2a2a2a; color: #fff;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28), inset 0 0 0 1px hsla(0, 0%, 100%, 0.07);
+}
+#toast.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(12px); }
 
 /* Hidden player. Default 720² = YouTube Music audio (hd720). .hq-audio = YouTube max. */
 #yt-holder {
