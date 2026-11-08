@@ -182,6 +182,8 @@ const Player = {
   preMuteVol: store.get('vol', 100), // volume to restore after unmute
   cued: false,
   context: '', // human label of where the queue came from (e.g. "Liked Songs")
+  wantPlay: false, // true while the user intends playback; false after an explicit pause
+  pipResumeTries: 0, // capped retries to resume a background-blocked play from the PiP control
   pending: null, // song shown in Now Playing while previous track keeps playing
   loadId: 0,
   get current() { return this.queue[this.index] || null; },
@@ -285,6 +287,7 @@ window.onYouTubeIframeAPIReady = () => {
           setTimeout(applyPlaybackQuality, 2000);
         }
         if (e.data === YT.PlayerState.BUFFERING) applyPlaybackQuality();
+        if (e.data === YT.PlayerState.PLAYING) Player.pipResumeTries = 0;
         document.body.classList.toggle('paused', e.data !== YT.PlayerState.PLAYING);
         renderPlayButtons();
         syncPipVideo(); // keep the system PiP play/pause icon in step with the music
@@ -447,6 +450,8 @@ function startCurrent() {
   const tryPlay = () => {
     if (loadId !== Player.loadId) return;
     if (!Player.ready) return setTimeout(tryPlay, 300);
+    Player.wantPlay = true;
+    Player.pipResumeTries = 0;
     Player.yt.loadVideoById({ videoId: s.videoId, suggestedQuality: suggestedQuality() });
     Player.yt.setPlaybackRate(Player.speed);
     Player.yt.playVideo();
@@ -554,6 +559,18 @@ function prevTrack() {
   if (Player.index > 0) { Player.index--; startCurrent(); }
   else if (Player.yt) Player.yt.seekTo(0);
 }
+/* Explicit intent. userPlay/userPause record what the user wants so the PiP
+   background-resume loop never fights a deliberate pause. */
+function userPlay() {
+  if (!Player.yt || !Player.ready) return;
+  Player.wantPlay = true;
+  Player.pipResumeTries = 0;
+  try { Player.yt.playVideo(); } catch {}
+}
+function userPause() {
+  Player.wantPlay = false;
+  if (Player.yt && Player.ready) { try { Player.yt.pauseVideo(); } catch {} }
+}
 function togglePlay() {
   if (!Player.current) return;
   if (Player.cued) {
@@ -565,8 +582,8 @@ function togglePlay() {
   }
   if (!Player.yt || !Player.ready) return;
   const st = Player.yt.getPlayerState();
-  if (st === YT.PlayerState.PLAYING) Player.yt.pauseVideo();
-  else Player.yt.playVideo();
+  if (st === YT.PlayerState.PLAYING) userPause();
+  else userPlay();
 }
 function playPendingSong() {
   const s = Player.pending;
@@ -3193,11 +3210,14 @@ function syncPipVideo() {
   // and that must not pause the music.
   video.addEventListener('pause', () => setTimeout(() => {
     if (!isSystemPipActive(video) || !video.paused || !Player.yt || !Player.ready) return;
-    if (Player.yt.getPlayerState() === YT.PlayerState.PLAYING) Player.yt.pauseVideo();
+    userPause(); // deliberate pause from the PiP control; stops the resume loop
   }, 250));
   video.addEventListener('play', () => setTimeout(() => {
     if (!isSystemPipActive(video) || video.paused || !Player.yt || !Player.ready) return;
-    if (Player.yt.getPlayerState() !== YT.PlayerState.PLAYING) togglePlay();
+    // Play from the PiP control while in recent apps: the page is hidden, so the
+    // browser may ignore playVideo(). userPlay() sets the intent and the loop
+    // below keeps retrying until the browser allows it (or we hit the cap).
+    userPlay();
   }, 250));
   video.addEventListener('leavepictureinpicture', onPopupClosed);
   // iOS Safari reports PiP changes through this event instead
@@ -3206,17 +3226,27 @@ function syncPipVideo() {
   });
 })();
 
-document.addEventListener('visibilitychange', () => {
-  if (!Player.floatOn || !Player.yt || !Player.ready) return;
+/* While a popup (PiP / floating widget) is open and the page is hidden, the
+   browser may refuse playVideo(). If the user wants playback (wantPlay) we keep
+   retrying, capped so a browser that blocks background media isn't hammered. A
+   deliberate pause clears wantPlay, so we never override the user. */
+const PIP_RESUME_MAX = 8;
+function tryPipResume() {
+  if (!Player.floatOn || !Player.wantPlay) return;
+  if (!Player.yt || !Player.ready) return;
+  const st = Player.yt.getPlayerState && Player.yt.getPlayerState();
+  if (st === YT.PlayerState.PLAYING) { Player.pipResumeTries = 0; return; }
+  if (Player.pipResumeTries >= PIP_RESUME_MAX) return;
+  Player.pipResumeTries++;
   try { Player.yt.playVideo(); } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) Player.pipResumeTries = 0; // fresh budget each time we come back
+  tryPipResume();
 });
 setInterval(() => {
-  if (!Player.floatOn || !Player.yt || !Player.ready) return;
-  const st = Player.yt.getPlayerState && Player.yt.getPlayerState();
-  if (st === 2 && document.hidden) {
-    try { Player.yt.playVideo(); } catch {}
-  }
-}, 1500);
+  if (document.hidden) tryPipResume();
+}, 1200);
 
 
 /* cleanup: unregister any previously installed service worker */
