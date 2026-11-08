@@ -1229,7 +1229,9 @@ function trackRowHTML(it, playing = false, extraBtn = '') {
   const qi = it.qi != null ? ` data-qi="${it.qi}"` : '';
   const pl = it.plId ? ` data-pl="${esc(it.plId)}" data-pi="${it.plIndex}"` : '';
   const qn = it.qn ? `<span class="q-num">${it.qn}</span>` : '';
-  const tn = it.tn != null ? `<span class="t-num">${it.tn}</span>` : '';
+  const tn = it.tn != null
+    ? `<span class="t-num"><span class="t-num-n">${it.tn}</span><span class="t-num-play" aria-hidden="true">${icon('i-play')}</span></span>`
+    : '';
   const cls = `track${playing ? ' playing' : ''}${it.qRadio ? ' q-radio' : ''}${it.qn ? ' q-user' : ''}${it.plId ? ' pl-track' : ''}`;
   return `<div class="${cls}"${qi}${pl} data-item='${esc(JSON.stringify(it))}'>
     <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>

@@ -521,7 +521,13 @@ html[data-theme="light"] .detail-head {
 .t-num {
   width: 22px; text-align: center; font-size: 13px; color: var(--muted);
   font-variant-numeric: tabular-nums; flex-shrink: 0;
+  position: relative; display: flex; align-items: center; justify-content: center;
 }
+.t-num-play { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: var(--text); }
+.t-num-play .ic { width: 14px; height: 14px; }
+/* hover a row: the track number turns into a small play icon (Spotify behaviour) */
+.track:hover .t-num-n { visibility: hidden; }
+.track:hover .t-num-play { display: flex; }
 .track.playing .t-num { display: none; }
 .chart-grid {
   display: grid;
