@@ -1106,8 +1106,15 @@ async function downloadSong(song) {
   try {
     let st;
     try {
-      st = await api(`/api/download-start?videoId=${encodeURIComponent(song.videoId)}`);
-    } catch {
+      const r = await fetch(`/api/download-start?videoId=${encodeURIComponent(song.videoId)}`);
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        // backend forwards the converter's own reason in `error`
+        throw new DownloadError(body.error ? `Download unavailable: ${body.error}` : 'The converter is unavailable right now. Try again later.');
+      }
+      st = body;
+    } catch (e) {
+      if (e instanceof DownloadError) throw e;
       throw new DownloadError('The converter is unavailable right now. Try again later.');
     }
     if (!st || !st.progressUrl) throw new DownloadError('This song can’t be converted right now.');
