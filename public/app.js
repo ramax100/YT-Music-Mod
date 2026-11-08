@@ -1370,29 +1370,83 @@ function setActiveNav(id) {
 }
 
 /* ---- Your Library sidebar (Spotify left rail) ---- */
+const LIB_FILTERS = [
+  ['all', 'All'],
+  ['playlist', 'Playlists'],
+  ['artist', 'Artists'],
+  ['album', 'Albums'],
+];
+function libFilter() { return store.get('lib_filter', 'all'); }
+function libSort() { return store.get('lib_sort', 'recents'); } // 'recents' | 'az'
+/* Build a unified, filterable, sortable list of everything in the library rail. */
+function collectLibraryRows() {
+  const rows = [];
+  const favs = Library.favorites;
+  if (favs.length) {
+    rows.push({
+      kind: 'playlist', name: 'Liked Songs', _order: Infinity, // Liked Songs pinned to top on Recents
+      html: `<button class="lib-row" data-nav="#/library/favorites">
+        <span class="lib-ph liked-ph">${icon('i-heart-f')}</span>
+        <span class="lr-meta"><span class="lr-t">Liked Songs</span><br><span class="lr-s">Playlist · ${favs.length} songs</span></span>
+      </button>`,
+    });
+  }
+  Library.playlists.forEach((p, i) => rows.push({
+    kind: 'playlist', name: p.name, _order: Library.playlists.length - i,
+    html: `<button class="lib-row" data-nav="#/localpl/${p.id}">
+      ${coverHTML(p.tracks[0] && p.tracks[0].thumbnail, 'lib')}
+      <span class="lr-meta"><span class="lr-t">${esc(p.name)}</span><br><span class="lr-s">Playlist · ${p.tracks.length} songs</span></span>
+    </button>`,
+  }));
+  Library.saved.forEach((it, i) => rows.push({
+    kind: it.type === 'artist' ? 'artist' : it.type === 'album' ? 'album' : 'playlist',
+    name: it.title || '', _order: Library.saved.length - i,
+    html: `<button class="lib-row ${it.type === 'artist' ? 'round' : ''}" data-item='${esc(JSON.stringify(it))}'>
+      ${coverHTML(it.thumbnail, 'lib')}
+      <span class="lr-meta"><span class="lr-t">${esc(it.title)}</span><br><span class="lr-s">${it.type === 'artist' ? 'Artist' : it.type === 'album' ? 'Album' : 'Playlist'}</span></span>
+    </button>`,
+  }));
+  return rows;
+}
 function renderSidebarLibrary() {
   const el = $('#lib-list');
   if (!el) return;
-  const favs = Library.favorites;
-  const pls = Library.playlists;
-  const saved = Library.saved;
-  let html = '';
-  if (favs.length) {
-    html += `<button class="lib-row" data-nav="#/library/favorites">
-      <span class="lib-ph liked-ph">${icon('i-heart-f')}</span>
-      <span class="lr-meta"><span class="lr-t">Liked Songs</span><br><span class="lr-s">Playlist · ${favs.length} songs</span></span>
-    </button>`;
+  const filter = libFilter();
+  const sort = libSort();
+  let rows = collectLibraryRows();
+  const total = rows.length;
+  if (filter !== 'all') rows = rows.filter((r) => r.kind === filter);
+  if (sort === 'az') rows.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  else rows.sort((a, b) => b._order - a._order); // recents: newest first, Liked Songs pinned
+
+  // controls: filter chips + sort toggle (only when there is something to show)
+  let controls = '';
+  if (total) {
+    controls = `<div class="lib-controls">
+      <div class="lib-chips">${LIB_FILTERS.map(([id, label]) =>
+        `<button type="button" class="lib-chip ${filter === id ? 'active' : ''}" data-lf="${id}">${label}</button>`).join('')}</div>
+      <button type="button" class="lib-sort" id="lib-sort" title="Sort">${sort === 'az' ? 'A–Z' : 'Recents'}</button>
+    </div>`;
   }
-  html += pls.map((p) => `<button class="lib-row" data-nav="#/localpl/${p.id}">
-      ${coverHTML(p.tracks[0] && p.tracks[0].thumbnail, 'lib')}
-      <span class="lr-meta"><span class="lr-t">${esc(p.name)}</span><br><span class="lr-s">Playlist · ${p.tracks.length} songs</span></span>
-    </button>`).join('');
-  html += saved.map((it) => `<button class="lib-row ${it.type === 'artist' ? 'round' : ''}" data-item='${esc(JSON.stringify(it))}'>
-      ${coverHTML(it.thumbnail, 'lib')}
-      <span class="lr-meta"><span class="lr-t">${esc(it.title)}</span><br><span class="lr-s">${it.type === 'artist' ? 'Artist' : it.type === 'album' ? 'Album' : 'Playlist'}</span></span>
-    </button>`).join('');
-  if (!html) html = `<div class="lib-empty"><b>Your library is empty</b><br>Like songs, save albums & artists, or open Library to create a playlist</div>`;
-  el.innerHTML = html;
+
+  let listHtml = rows.map((r) => r.html).join('');
+  if (!total) {
+    listHtml = `<div class="lib-empty"><b>Your library is empty</b><br>Like songs, save albums & artists, or open Library to create a playlist</div>`;
+  } else if (!rows.length) {
+    const label = (LIB_FILTERS.find(([id]) => id === filter) || [, 'items'])[1].toLowerCase();
+    listHtml = `<div class="lib-empty">No ${label} in your library yet.</div>`;
+  }
+  el.innerHTML = controls + `<div class="lib-scroll">${listHtml}</div>`;
+
+  $$('[data-lf]', el).forEach((b) => b.addEventListener('click', () => {
+    store.set('lib_filter', b.dataset.lf === libFilter() && b.dataset.lf !== 'all' ? 'all' : b.dataset.lf);
+    renderSidebarLibrary();
+  }));
+  const sortBtn = $('#lib-sort', el);
+  if (sortBtn) sortBtn.addEventListener('click', () => {
+    store.set('lib_sort', libSort() === 'az' ? 'recents' : 'az');
+    renderSidebarLibrary();
+  });
   $$('[data-nav]', el).forEach((b) => b.addEventListener('click', () => go(b.dataset.nav)));
   $$('[data-item]', el).forEach((b) => b.addEventListener('click', () => {
     try { openItem(JSON.parse(b.dataset.item)); } catch {}
