@@ -233,36 +233,49 @@ body.lib-collapsed #sidebar .lib-box { overflow: hidden; }
 .nav-item:hover { color: var(--text); background: var(--hover); }
 .nav-item.active { color: var(--text); }
 .nav-item .ic { width: 24px; height: 24px; }
-.lib-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 8px; }
+.lib-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 4px 8px; }
 .lib-title {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 6px; min-width: 0;
   color: var(--muted); font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em;
-  transition: color 0.18s;
+  transition: color 0.18s, background 0.15s;
 }
-.lib-title:hover { color: var(--text); }
-.lib-title .ic { width: 24px; height: 24px; }
-#lib-collapse, #side-q-clear { color: var(--muted); }
+.lib-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-title:hover { color: var(--text); background: var(--hover); }
+.lib-title .ic { width: 24px; height: 24px; flex-shrink: 0; }
+/* collapse / clear buttons: consistent round 36px touch targets */
+#lib-collapse, #side-q-clear {
+  color: var(--muted); flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s, transform 0.12s;
+}
 #side-q-clear.hidden { display: none !important; }
-#lib-collapse:hover { color: var(--text); background: var(--hover); }
-#lib-collapse .ic { width: 18px; height: 18px; }
+#lib-collapse:hover, #side-q-clear:hover { color: var(--text); background: var(--hover); }
+#lib-collapse:active, #side-q-clear:active { transform: scale(0.92); }
+#lib-collapse .ic, #side-q-clear .ic { width: 18px; height: 18px; }
 #lib-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .lib-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .lib-controls {
   display: flex; align-items: center; gap: 8px; justify-content: space-between;
-  padding: 2px 4px 8px;
+  padding: 2px 4px 10px;
 }
-.lib-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.lib-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-width: 0; padding: 1px; }
 .lib-chips::-webkit-scrollbar { display: none; }
 .lib-chip {
-  padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  border: none; cursor: pointer; flex-shrink: 0;
+  padding: 7px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
   background: var(--hover-strong); color: var(--text); white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
 }
 .lib-chip:hover { background: color-mix(in srgb, var(--text) 18%, transparent); }
+.lib-chip:active { transform: scale(0.95); }
 .lib-chip.active { background: var(--chip-on-bg); color: var(--chip-on-fg); font-weight: 700; }
 .lib-sort {
-  flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--muted);
-  padding: 5px 8px; border-radius: 6px; white-space: nowrap; transition: color 0.15s, background 0.15s;
+  border: none; cursor: pointer; flex-shrink: 0;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  padding: 7px 10px; border-radius: 8px; white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
 }
 .lib-sort:hover { color: var(--text); background: var(--hover); }
 .lib-row {
