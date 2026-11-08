@@ -200,7 +200,26 @@ a { color: inherit; }
 #side-q-clear.hidden { display: none !important; }
 #lib-new:hover { color: var(--text); background: var(--hover); }
 #lib-new .ic { width: 18px; height: 18px; }
-#lib-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+#lib-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.lib-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+.lib-controls {
+  display: flex; align-items: center; gap: 8px; justify-content: space-between;
+  padding: 2px 4px 8px;
+}
+.lib-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.lib-chips::-webkit-scrollbar { display: none; }
+.lib-chip {
+  padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  background: var(--hover-strong); color: var(--text); white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.lib-chip:hover { background: color-mix(in srgb, var(--text) 18%, transparent); }
+.lib-chip.active { background: var(--chip-on-bg); color: var(--chip-on-fg); font-weight: 700; }
+.lib-sort {
+  flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--muted);
+  padding: 5px 8px; border-radius: 6px; white-space: nowrap; transition: color 0.15s, background 0.15s;
+}
+.lib-sort:hover { color: var(--text); background: var(--hover); }
 .lib-row {
   display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 6px;
   cursor: pointer; text-align: left; width: 100%;
