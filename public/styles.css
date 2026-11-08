@@ -147,7 +147,10 @@ body.lib-collapsed #sidebar .sidebar-footer,
 body.lib-collapsed #sidebar #side-queue,
 body.lib-collapsed #sidebar #lib-list,
 body.lib-collapsed #sidebar .lib-controls,
-body.lib-collapsed #sidebar #side-q-clear { display: none; }
+body.lib-collapsed #sidebar #side-q-clear,
+body.lib-collapsed #sidebar #lib-expand,
+body.lib-collapsed #sidebar #side-queue-btn span,
+body.lib-collapsed #sidebar #side-queue-btn .ic ~ span { display: none; }
 /* center the remaining icons */
 body.lib-collapsed #sidebar .side-box { padding: 10px 8px; }
 body.lib-collapsed #sidebar .logo { justify-content: center; padding: 8px 0 12px; }
@@ -156,8 +159,6 @@ body.lib-collapsed #sidebar .lib-title { justify-content: center; gap: 0; }
 body.lib-collapsed #sidebar .lib-head { justify-content: center; }
 /* the Queue box has no icon-only value collapsed; just show its button centered */
 body.lib-collapsed #sidebar .q-box { flex: 0 0 auto; max-height: none; }
-/* flip the collapse arrow to point the other way when collapsed */
-body.lib-collapsed #lib-collapse .ic { transform: scaleX(-1); }
 .side-box {
   background: var(--main-bg);
   border-radius: var(--radius);
@@ -218,10 +219,10 @@ body.lib-collapsed #lib-collapse .ic { transform: scaleX(-1); }
 }
 .lib-title:hover { color: var(--text); }
 .lib-title .ic { width: 24px; height: 24px; }
-#lib-collapse, #side-q-clear { color: var(--muted); }
+#lib-expand, #side-q-clear { color: var(--muted); }
 #side-q-clear.hidden { display: none !important; }
-#lib-collapse:hover { color: var(--text); background: var(--hover); }
-#lib-collapse .ic { width: 18px; height: 18px; }
+#lib-expand:hover { color: var(--text); background: var(--hover); }
+#lib-expand .ic { width: 18px; height: 18px; }
 #lib-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .lib-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .lib-controls {
