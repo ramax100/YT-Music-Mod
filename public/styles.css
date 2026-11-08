@@ -139,7 +139,8 @@ a { color: inherit; }
 }
 /* ---- collapsed sidebar (Spotify desktop) : icons only ---- */
 body.lib-collapsed #sidebar { width: 72px; }
-/* hide all the text labels, keep icons */
+/* hide labels, the playlist/album list, and the queue contents — keep icons.
+   !important so these win over the elements' own id-level display:flex rules. */
 body.lib-collapsed #sidebar .logo span,
 body.lib-collapsed #sidebar .nav-item span,
 body.lib-collapsed #sidebar .lib-title span,
@@ -147,10 +148,10 @@ body.lib-collapsed #sidebar .sidebar-footer,
 body.lib-collapsed #sidebar #side-queue,
 body.lib-collapsed #sidebar #lib-list,
 body.lib-collapsed #sidebar .lib-controls,
+body.lib-collapsed #sidebar .lib-scroll,
 body.lib-collapsed #sidebar #side-q-clear,
 body.lib-collapsed #sidebar #lib-expand,
-body.lib-collapsed #sidebar #side-queue-btn span,
-body.lib-collapsed #sidebar #side-queue-btn .ic ~ span { display: none; }
+body.lib-collapsed #sidebar #side-queue-btn span { display: none !important; }
 /* center the remaining icons */
 body.lib-collapsed #sidebar .side-box { padding: 10px 8px; }
 body.lib-collapsed #sidebar .logo { justify-content: center; padding: 8px 0 12px; }
