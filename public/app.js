@@ -287,6 +287,7 @@ window.onYouTubeIframeAPIReady = () => {
         if (e.data === YT.PlayerState.BUFFERING) applyPlaybackQuality();
         document.body.classList.toggle('paused', e.data !== YT.PlayerState.PLAYING);
         renderPlayButtons();
+        syncPipVideo(); // keep the system PiP play/pause icon in step with the music
       },
       onPlaybackQualityChange: (e) => {
         if (!Player.hq) return;
@@ -2926,11 +2927,8 @@ async function openPipWidget() {
     syncFloatWidget();
     syncFloatLyric(currentLyricText());
     pip.addEventListener('pagehide', () => {
-      Player.pipWin = null;
-      if (Player.floatOn) {
-        $('#float-widget').classList.remove('hidden');
-        document.body.classList.add('float-mode');
-      }
+      if (Player.pipWin === pip) Player.pipWin = null;
+      onPopupClosed(); // user closed the popup window: end popup mode, restore the player bar
     });
     return true;
   } catch {
@@ -3094,12 +3092,7 @@ async function startSystemPip() {
     } else {
       return false;
     }
-    video.onleavepictureinpicture = () => {
-      if (Player.floatOn) {
-        $('#float-widget').classList.remove('hidden');
-        document.body.classList.add('float-mode');
-      }
-    };
+    // closing is handled by the leavepictureinpicture listener (onPopupClosed)
     return true;
   } catch {
     return false;
@@ -3108,26 +3101,34 @@ async function startSystemPip() {
 
 async function openFloatWidget() {
   if (!Player.current) { toast('Play a song first'); return; }
-  Player.floatOn = true;
-  closeNowPlaying();
-  document.body.classList.add('float-mode');
-  drawPipFrame();
-  const sysOk = await startSystemPip();
-  const docOk = sysOk ? false : await openPipWidget();
-  const el = $('#float-widget');
-  if (sysOk) {
-    el.classList.add('hidden');
-    toast('Widget di recent apps — buka aplikasi lain, musik tetap jalan');
-  } else if (docOk) {
-    el.classList.add('hidden');
-    toast('Widget floating — stays on top');
-  } else {
-    el.classList.remove('hidden');
-    enableDrag(el);
-    bindFloatWidget(document);
-    toast('Floating widget — drag to move');
+  if (Player._floatBusy) return; // already opening; ignore repeated taps
+  Player._floatBusy = true;
+  try {
+    Player.floatOn = true;
+    closeNowPlaying();
+    document.body.classList.add('float-mode');
+    drawPipFrame();
+    const sysOk = await startSystemPip();
+    const docOk = sysOk ? false : await openPipWidget();
+    const el = $('#float-widget');
+    if (sysOk) {
+      el.classList.add('hidden');
+      syncPipVideo();
+      toast('Widget di recent apps — buka aplikasi lain, musik tetap jalan');
+    } else if (docOk) {
+      el.classList.add('hidden');
+      toast('Widget floating — stays on top');
+    } else {
+      el.classList.remove('hidden');
+      enableDrag(el);
+      bindFloatWidget(document);
+      clampFloatWidget();
+      toast('Floating widget — drag to move');
+    }
+    syncFloatWidget();
+  } finally {
+    Player._floatBusy = false;
   }
-  syncFloatWidget();
 }
 function closeFloatWidget() {
   Player.floatOn = false;
@@ -3147,9 +3148,63 @@ function closeFloatWidget() {
   syncFloatWidget();
 }
 function toggleFloatWidget() {
+  if (Player._floatBusy) return; // wait for the current open to finish
   if (Player.floatOn) closeFloatWidget();
   else openFloatWidget();
 }
+
+/* Closing the popup window (OS PiP close button, Document PiP close, or iOS
+   leaving PiP) ends popup mode so the normal player bar comes back. Ignored
+   while openFloatWidget is swapping windows. */
+function onPopupClosed() {
+  if (Player._floatBusy || !Player.floatOn) return;
+  closeFloatWidget();
+}
+/* Keep the in-page widget inside the viewport (e.g. after rotating the phone,
+   or a position saved on a bigger screen). */
+function clampFloatWidget() {
+  const el = $('#float-widget');
+  if (!el || el.classList.contains('hidden')) return;
+  if (!el.style.left || el.style.left === 'auto') return; // anchored bottom-right, always visible
+  const x = Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, parseFloat(el.style.left) || 0));
+  const y = Math.max(8, Math.min(window.innerHeight - el.offsetHeight - 8, parseFloat(el.style.top) || 0));
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+}
+window.addEventListener('resize', clampFloatWidget);
+
+/* System PiP shows a muted canvas video. Its play/pause button must control
+   the music, and its icon must match the music state. Both directions are
+   idempotent, so syncing one side never loops back. */
+function isSystemPipActive(video) {
+  return !!video && (document.pictureInPictureElement === video || video.webkitPresentationMode === 'picture-in-picture');
+}
+function syncPipVideo() {
+  const video = $('#pip-video');
+  if (!isSystemPipActive(video) || !Player.yt || !Player.ready || !Player.yt.getPlayerState) return;
+  const st = Player.yt.getPlayerState();
+  if (st === YT.PlayerState.PLAYING && video.paused) video.play().catch(() => {});
+  else if (st === YT.PlayerState.PAUSED && !video.paused) video.pause();
+}
+(() => {
+  const video = $('#pip-video');
+  if (!video) return;
+  // Short delay + re-check: closing the PiP window can pause the video first,
+  // and that must not pause the music.
+  video.addEventListener('pause', () => setTimeout(() => {
+    if (!isSystemPipActive(video) || !video.paused || !Player.yt || !Player.ready) return;
+    if (Player.yt.getPlayerState() === YT.PlayerState.PLAYING) Player.yt.pauseVideo();
+  }, 250));
+  video.addEventListener('play', () => setTimeout(() => {
+    if (!isSystemPipActive(video) || video.paused || !Player.yt || !Player.ready) return;
+    if (Player.yt.getPlayerState() !== YT.PlayerState.PLAYING) togglePlay();
+  }, 250));
+  video.addEventListener('leavepictureinpicture', onPopupClosed);
+  // iOS Safari reports PiP changes through this event instead
+  video.addEventListener('webkitpresentationmodechanged', () => {
+    if (video.webkitPresentationMode !== 'picture-in-picture') onPopupClosed();
+  });
+})();
 
 document.addEventListener('visibilitychange', () => {
   if (!Player.floatOn || !Player.yt || !Player.ready) return;
