@@ -833,6 +833,9 @@ function renderNowPlaying() {
     ma.textContent = artist;
     ma.title = artist;
     ma.classList.toggle('linkish', !!(songArtistBrowseId(mini) || artist.trim()));
+    coverAccent(mini.thumbnail || ''); // tint the player bar from the playing track's art
+  } else {
+    coverAccent('');
   }
   if (!np) return;
   $('#np-art').src = safeCover(np.thumbnail) || COVER_PH;
@@ -3061,6 +3064,52 @@ async function openPipWidget() {
 
 
 let pipArtImg = null;
+/* ---- player-bar accent from the current cover (Spotify-style) ----
+   Reads the dominant colour of the cover and tints the player bar with it.
+   The cover is loaded through /api/thumb so the canvas isn't CORS-tainted. */
+let _tintSrc = '';
+const _tintCache = new Map();
+function applyBarTint(rgb) {
+  // rgb: [r,g,b] or null to clear
+  const root = document.documentElement;
+  if (!rgb) { root.style.removeProperty('--player-accent'); return; }
+  root.style.setProperty('--player-accent', `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`);
+}
+function coverAccent(url) {
+  if (!url) { applyBarTint(null); _tintSrc = ''; return; }
+  if (url === _tintSrc) return; // already applied for this cover
+  _tintSrc = url;
+  if (_tintCache.has(url)) { applyBarTint(_tintCache.get(url)); return; }
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    if (url !== _tintSrc) return; // a newer song took over
+    try {
+      const n = 16; // tiny sample grid — fast and smooths out noise
+      const c = document.createElement('canvas');
+      c.width = n; c.height = n;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, n, n);
+      const data = ctx.getImageData(0, 0, n, n).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const pr = data[i], pg = data[i + 1], pb = data[i + 2], pa = data[i + 3];
+        if (pa < 125) continue;
+        const max = Math.max(pr, pg, pb), min = Math.min(pr, pg, pb);
+        // skip near-black, near-white, and greys so we pick an actual colour
+        if (max < 24 || min > 232 || max - min < 12) continue;
+        r += pr; g += pg; b += pb; count++;
+      }
+      let rgb;
+      if (count) rgb = [Math.round(r / count), Math.round(g / count), Math.round(b / count)];
+      else rgb = [80, 80, 80]; // fallback neutral when the art is flat/mono
+      _tintCache.set(url, rgb);
+      if (url === _tintSrc) applyBarTint(rgb);
+    } catch { applyBarTint(null); }
+  };
+  img.onerror = () => { if (url === _tintSrc) applyBarTint(null); };
+  img.src = '/api/thumb?url=' + encodeURIComponent(url);
+}
 let pipArtSrc = '';
 function loadPipArt(url) {
   if (!url || url === pipArtSrc) return;
