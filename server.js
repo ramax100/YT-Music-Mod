@@ -571,17 +571,32 @@ app.get('/api/browse', async (req, res) => {
    The user never sees or visits the third-party site — the file just downloads. */
 const LOADER_API = 'https://loader.to/ajax/download.php';
 const DL_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+// loader.to now gates its download endpoint behind an API key. Supply one via
+// the LOADER_API_KEY env var (e.g. a Vercel environment variable) — never commit
+// a key to the repo. Without it we still try the keyless endpoint, which may be
+// rejected by the service.
+const LOADER_API_KEY = process.env.LOADER_API_KEY || '';
 
 /* start a conversion job: returns { jobId, progressUrl } */
 app.get('/api/download-start', async (req, res) => {
   const videoId = String(req.query.videoId || '');
   if (!/^[\w-]{6,20}$/.test(videoId)) return res.status(400).json({ error: 'bad id' });
   try {
-    const u = `${LOADER_API}?format=mp3&url=${encodeURIComponent('https://www.youtube.com/watch?v=' + videoId)}`;
+    const target = encodeURIComponent('https://www.youtube.com/watch?v=' + videoId);
+    const u = `${LOADER_API}?format=mp3&url=${target}${LOADER_API_KEY ? `&apikey=${encodeURIComponent(LOADER_API_KEY)}` : ''}`;
     const r = await fetch(u, { headers: { 'User-Agent': DL_UA, Referer: 'https://loader.to/' } });
-    if (!r.ok) throw new Error(`start -> ${r.status}`);
-    const d = await r.json();
-    if (!d.success || !d.id) throw new Error('converter refused this song');
+    if (!r.ok) {
+      // surface the upstream status so the client can tell "service down" apart
+      // from "this song refused"
+      return res.status(502).json({ error: `converter responded ${r.status}`, upstreamStatus: r.status });
+    }
+    let d;
+    try { d = await r.json(); }
+    catch { return res.status(502).json({ error: 'converter returned a non-JSON response (likely blocked or rate-limited)' }); }
+    if (!d.success || !d.id) {
+      const reason = d.text || d.message || d.error || 'converter refused this song';
+      return res.status(502).json({ error: String(reason) });
+    }
     res.json({ jobId: d.id, progressUrl: d.progress_url, title: d.title || null });
   } catch (e) {
     res.status(502).json({ error: e.message });
