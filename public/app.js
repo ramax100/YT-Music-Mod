@@ -1410,27 +1410,17 @@ function resetNpSeek(s) {
   const nd = $('#np-dur'); if (nd) nd.textContent = dur;
   const lp = $('#np-lyric-preview'); if (lp) lp.textContent = '';
 }
-function previewSong(song) {
-  if (!song || !song.videoId) return;
-  Player.pending = song;
-  renderNowPlaying();
-  updateLikeButtons();
-  renderPlayButtons();
-  resetNpSeek(song);
-  // keep Related for the song that's actually playing
-}
 function openSongNowPlaying(song) {
   if (!song || !song.videoId) return;
   const same = Player.current && Player.current.videoId === song.videoId;
-  if (!Player.current) {
-    playSong(song);
-  } else if (!same) {
-    previewSong(song);
-  } else {
+  // Picking a song plays it immediately (no preview-then-press-Play step).
+  if (same) {
     Player.pending = null;
     renderNowPlaying();
     updateLikeButtons();
     renderPlayButtons();
+  } else {
+    playSong(song);
   }
   openNowPlaying();
   switchNPTab('player');
