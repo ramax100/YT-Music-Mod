@@ -648,7 +648,7 @@ setInterval(() => {
   }
   if (!isPreviewing()) updateLyricHighlight(cur);
   syncFloatProgress(pct);
-  if (Player.floatOn) drawPipFrame(pct);
+  if (Player.floatOn) drawPipFrame(); // reads current time itself; no arg needed
 }, 400);
 
 function renderPlayButtons() {
