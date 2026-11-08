@@ -938,6 +938,8 @@ app.get('/api/thumb', async (req, res) => {
     if (!r.ok) return res.status(502).end();
     res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
+    // allow the canvas to read pixels (cover-colour extraction) without tainting
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(Buffer.from(await r.arrayBuffer()));
   } catch {
     res.status(500).end();
