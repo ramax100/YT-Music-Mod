@@ -150,7 +150,7 @@ body.lib-collapsed #sidebar #lib-list,
 body.lib-collapsed #sidebar .lib-controls,
 body.lib-collapsed #sidebar .lib-scroll,
 body.lib-collapsed #sidebar #side-q-clear,
-body.lib-collapsed #sidebar #lib-expand,
+body.lib-collapsed #sidebar #lib-collapse,
 body.lib-collapsed #sidebar #side-queue-btn span { display: none !important; }
 /* collapsed layout: neat, centered, icon-only */
 body.lib-collapsed #sidebar .side-box { padding: 8px 0; }
@@ -228,10 +228,10 @@ body.lib-collapsed #sidebar .lib-box { flex: 0 0 auto; max-height: none; min-hei
 }
 .lib-title:hover { color: var(--text); }
 .lib-title .ic { width: 24px; height: 24px; }
-#lib-expand, #side-q-clear { color: var(--muted); }
+#lib-collapse, #side-q-clear { color: var(--muted); }
 #side-q-clear.hidden { display: none !important; }
-#lib-expand:hover { color: var(--text); background: var(--hover); }
-#lib-expand .ic { width: 18px; height: 18px; }
+#lib-collapse:hover { color: var(--text); background: var(--hover); }
+#lib-collapse .ic { width: 18px; height: 18px; }
 #lib-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .lib-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .lib-controls {

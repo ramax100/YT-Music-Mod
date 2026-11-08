@@ -1591,9 +1591,9 @@ async function viewHome(view) {
   const dateLine = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
   let html = `<div class="hello-row"><div><div class="greeting">${esc(dateLine)}</div><h1 class="page-title">${greet}</h1></div></div>`;
   if (hist.length) {
-    // Spotify-style: simple track rows (thumbnail + title + artist), not grid cards
+    // Spotify-style: simple track rows (thumbnail + title + artist), no duration
     html += `<div class="shelf recent-shelf"><div class="shelf-title">Recently played</div>
-      <div class="track-list">${hist.slice(0, 6).map((s) => trackRowHTML({ ...s, subtitle: s.artist })).join('')}</div></div>`;
+      <div class="track-list">${hist.slice(0, 6).map((s) => trackRowHTML({ ...s, subtitle: s.artist, duration: '' })).join('')}</div></div>`;
   }
   html += `<div id="mix-slot"></div>`;
   if (hist.length > 6) {
@@ -2847,20 +2847,25 @@ document.addEventListener('keydown', (e) => {
 /* topbar back / forward (Spotify chrome) */
 $('#nav-back').addEventListener('click', () => history.back());
 $('#nav-fwd').addEventListener('click', () => history.forward());
-/* collapse / expand the desktop sidebar (Spotify). The "Your Library" title
-   in the top-left toggles it, just like Spotify desktop. */
+/* collapse / expand the desktop sidebar (Spotify). A dedicated button in the
+   library header toggles it; the "Your Library" title navigates to the page. */
 function setSidebarCollapsed(on) {
   document.body.classList.toggle('lib-collapsed', !!on);
   store.set('lib_collapsed', !!on);
-  const t = $('#lib-title-btn');
-  if (t) t.title = on ? 'Expand your library' : 'Collapse your library';
+  const c = $('#lib-collapse');
+  if (c) c.title = on ? 'Expand your library' : 'Collapse your library';
 }
-$('#lib-title-btn').addEventListener('click', () => {
+const libCollapseBtn = $('#lib-collapse');
+if (libCollapseBtn) libCollapseBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
   setSidebarCollapsed(!document.body.classList.contains('lib-collapsed'));
 });
-// the arrow opens the full library page (hidden while collapsed)
-const libExpandBtn = $('#lib-expand');
-if (libExpandBtn) libExpandBtn.addEventListener('click', (e) => { e.stopPropagation(); go('#/library'); });
+$('#lib-title-btn').addEventListener('click', () => {
+  // while collapsed, the library icon is the only control — use it to expand;
+  // otherwise it opens the library page
+  if (document.body.classList.contains('lib-collapsed')) setSidebarCollapsed(false);
+  else go('#/library');
+});
 if (store.get('lib_collapsed', false)) setSidebarCollapsed(true);
 const sideQBtn = $('#side-queue-btn');
 if (sideQBtn) sideQBtn.addEventListener('click', () => { openNowPlaying(); switchNPTab('queue'); });
