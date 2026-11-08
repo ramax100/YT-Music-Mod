@@ -1282,6 +1282,28 @@ function likedCardHTML() {
     <div class="s">${n} song${n === 1 ? '' : 's'}</div>
   </div>`;
 }
+/* Shared Spotify-style detail header (big gradient cover, huge title, actions).
+   opts: { kicker, title, subtitle, cover, gradient ('liked'|'playlist'|''), actions } */
+function detailHeadHTML(opts) {
+  const { kicker = '', title = '', subtitle = '', cover = '', gradient = '', actions = '' } = opts || {};
+  let coverHtml;
+  if (safeCover(cover)) {
+    coverHtml = `<img src="${esc(cover)}" alt="">`;
+  } else if (gradient === 'liked') {
+    coverHtml = `<div class="detail-ph liked">${icon('i-heart-f')}</div>`;
+  } else {
+    coverHtml = `<div class="detail-ph">${icon('i-note')}</div>`;
+  }
+  return `<div class="detail-head">
+    ${coverHtml}
+    <div class="detail-info">
+      <div class="detail-kicker">${esc(kicker)}</div>
+      <h1>${esc(title)}</h1>
+      <div class="sub">${esc(subtitle)}</div>
+      <div class="detail-actions">${actions}</div>
+    </div>
+  </div>`;
+}
 function shelfHTML(sec) {
   if (sec.list) {
     return `<div class="shelf"><div class="shelf-title">${esc(sec.title)}</div>
@@ -1893,10 +1915,20 @@ function viewLibrary(view, tab) {
   let body = '';
   if (tab === 'favorites') {
     const f = Library.favorites;
-    body = f.length
-      ? `<div class="lib-actions"><button class="pill-btn primary" id="fav-play">${icon('i-play')}<span>Play all</span></button> <button class="pill-btn" id="fav-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button></div>
-         ${trackHeadHTML()}<div class="track-list">${f.map((s, i) => trackRowHTML({ ...s, subtitle: s.artist, tn: i + 1 })).join('')}</div>`
-      : emptyHTML('No liked songs yet', 'Tap the heart on any song to save it here.', { label: 'Find songs', go: '#/search', ic: 'i-heart-o' });
+    if (f.length) {
+      const head = detailHeadHTML({
+        kicker: 'Playlist',
+        title: 'Liked Songs',
+        subtitle: `${f.length} song${f.length === 1 ? '' : 's'}`,
+        gradient: 'liked',
+        actions:
+          `<button class="pill-btn primary" id="fav-play">${icon('i-play')}<span>Play all</span></button>` +
+          `<button class="pill-btn" id="fav-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>`,
+      });
+      body = head + trackHeadHTML() + `<div class="track-list">${f.map((s, i) => trackRowHTML({ ...s, subtitle: s.artist, tn: i + 1 })).join('')}</div>`;
+    } else {
+      body = emptyHTML('No liked songs yet', 'Tap the heart on any song to save it here.', { label: 'Find songs', go: '#/search', ic: 'i-heart-o' });
+    }
   } else if (tab === 'history') {
     const h = Library.history;
     body = h.length
@@ -2100,19 +2132,20 @@ function viewLocalPlaylist(view, pid) {
       `<button class="tbtn btn-qdn" data-i="${i}" title="Move down"${dn}>${icon('i-chev-down')}</button>` +
       `<button class="tbtn btn-rm" data-vid="${esc(s.videoId)}" title="Remove">${icon('i-x')}</button>`);
   }).join('');
-  const cover = safeCover(pl.tracks[0] && pl.tracks[0].thumbnail)
-    ? `<img src="${esc(pl.tracks[0].thumbnail)}" alt="">`
-    : `<div class="detail-ph">${icon('i-note')}</div>`;
-  view.innerHTML = `<div class="detail-head">
-      ${cover}
-      <div class="detail-info"><div class="detail-kicker">Playlist</div><h1>${esc(pl.name)}</h1><div class="sub">${pl.tracks.length} song${pl.tracks.length === 1 ? '' : 's'} · Local playlist</div>
-      <div class="detail-actions">
-        <button class="pill-btn primary" id="pl-play">${icon('i-play')}<span>Play</span></button>
-        <button class="pill-btn" id="pl-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>
-        <button class="pill-btn" id="pl-rename">${icon('i-note')}<span>Rename</span></button>
-        <button class="pill-btn" id="pl-del">${icon('i-trash')}<span>Delete</span></button>
-      </div></div></div>
-    ${rows ? trackHeadHTML() + `<div class="track-list">${rows}</div>` : emptyHTML('This playlist is empty', 'Open any song and tap Playlist to add it here.', { label: 'Find songs', go: '#/search', ic: 'i-note' })}`;
+  const head = detailHeadHTML({
+    kicker: 'Playlist',
+    title: pl.name,
+    subtitle: `${pl.tracks.length} song${pl.tracks.length === 1 ? '' : 's'} · Local playlist`,
+    cover: pl.tracks[0] && pl.tracks[0].thumbnail,
+    gradient: 'playlist',
+    actions:
+      `<button class="pill-btn primary" id="pl-play">${icon('i-play')}<span>Play</span></button>` +
+      `<button class="pill-btn" id="pl-shuffle">${icon('i-shuffle')}<span>Shuffle</span></button>` +
+      `<button class="pill-btn" id="pl-rename">${icon('i-note')}<span>Rename</span></button>` +
+      `<button class="pill-btn" id="pl-del">${icon('i-trash')}<span>Delete</span></button>`,
+  });
+  view.innerHTML = head +
+    (rows ? trackHeadHTML() + `<div class="track-list">${rows}</div>` : emptyHTML('This playlist is empty', 'Open any song and tap Playlist to add it here.', { label: 'Find songs', go: '#/search', ic: 'i-note' }));
   bindItems(view);
   $$('.btn-rm', view).forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();

@@ -505,6 +505,9 @@ html[data-theme="light"] .detail-head {
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55); flex-shrink: 0;
 }
 .detail-head .detail-ph .ic { width: 72px; height: 72px; color: #fff; }
+.detail-head .detail-ph.liked {
+  background: linear-gradient(135deg, #450af5 0%, #8d67ab 48%, #1db954 100%);
+}
 .track-head {
   display: flex; align-items: center;
   padding: 6px 14px 8px; margin: 8px 0 2px;
