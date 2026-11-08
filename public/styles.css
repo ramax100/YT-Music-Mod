@@ -949,6 +949,16 @@ body:not(.paused) .np-art-wrap { transform: scale(1.01); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .pl-pick-count { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+/* add-to-playlist: membership indicator + find box */
+.pl-check { margin-left: auto; flex-shrink: 0; width: 20px; display: flex; align-items: center; justify-content: center; color: var(--accent-bright); }
+.pl-check .ic { width: 17px; height: 17px; }
+.pl-pick.in .pl-pick-name { color: var(--accent-bright); }
+.pl-pick-ph.liked { background: linear-gradient(135deg, #450af5 0%, #8d67ab 48%, #1db954 100%); }
+.pl-filter {
+  width: 100%; padding: 10px 14px; border-radius: 8px; margin-bottom: 10px;
+  background: var(--hover-strong); border: none; color: var(--text); font-size: 14px; outline: none; font-weight: 500;
+}
+.pl-filter::placeholder { color: var(--muted); }
 html[data-theme="light"] .pl-pick { background: #f4f4f4; }
 html[data-theme="light"] .pl-pick:hover { background: #ececec; }
 html[data-theme="light"] .pl-pick-name { color: #121212; }
