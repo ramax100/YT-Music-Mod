@@ -175,6 +175,7 @@ const Player = {
   speed: 1,
   sbSegments: [],
   sbEnabled: store.get('sb_on', true),
+  autoplay: store.get('autoplay', true), // when on, a radio queue is built after the current song
   hq: store.get('yt_hq', false), // false = YouTube Music audio, true = YouTube max quality
   quality: 'hd720',
   muted: store.get('muted', false),
@@ -496,7 +497,8 @@ async function fetchQueue(song) {
     if (!vid || !Player.current || Player.current.videoId !== vid) return;
     Player.lyricsBrowseId = d.lyricsBrowseId;
     Player.relatedBrowseId = d.relatedBrowseId;
-    if (d.queue && d.queue.length > 1) {
+    // Autoplay off: skip building the radio queue (lyrics/related still load above).
+    if (Player.autoplay && d.queue && d.queue.length > 1) {
       const current = Player.current;
       const userUpcoming = Player.queue.filter((q, i) => i > Player.index && q._user);
       const radio = d.queue
@@ -650,6 +652,24 @@ function toggleSB() {
   $('#np-sb').classList.toggle('on', Player.sbEnabled);
   syncNpMore();
   toast(Player.sbEnabled ? 'SponsorBlock on' : 'SponsorBlock off');
+}
+function toggleAutoplay() {
+  Player.autoplay = !Player.autoplay;
+  store.set('autoplay', Player.autoplay);
+  if (Player.autoplay) {
+    // turning on: build a radio queue for the current song if there's none yet
+    const hasRadio = Player.queue.some((q, i) => i > Player.index && !q._user);
+    if (Player.current && !hasRadio && !Player.cued) fetchQueue(Player.current);
+  } else {
+    // turning off: drop upcoming radio tracks, keep the user's manual queue
+    const kept = Player.queue.filter((q, i) => i <= Player.index || q._user);
+    Player.index = kept.indexOf(Player.current);
+    if (Player.index < 0) Player.index = 0;
+    Player.queue = kept;
+    renderQueue();
+  }
+  syncNpMore();
+  toast(Player.autoplay ? 'Autoplay on' : 'Autoplay off');
 }
 
 /* ================= lyrics ================= */
@@ -2141,6 +2161,7 @@ function openNowPlayingMore() {
     ${row('dl', 'i-download', 'Download')}
     ${row('share', 'i-share', 'Share')}
     ${row('artist', 'i-search', 'Go to artist')}
+    ${row('autoplay', 'i-radio', Player.autoplay ? 'Autoplay on' : 'Autoplay off', Player.autoplay)}
     ${row('speed', 'i-clock', `Speed · ${Player.speed}×`)}
     ${row('float', 'i-pip', Player.floatOn ? 'Widget on' : 'Widget')}
     ${row('quality', 'i-expand', Player.hq ? 'Quality · Max' : 'Quality · YouTube Music')}
@@ -2150,6 +2171,7 @@ function openNowPlayingMore() {
     if (a === 'dl') downloadSong(song);
     else if (a === 'share') shareSong(song);
     else if (a === 'artist') goToArtist(song);
+    else if (a === 'autoplay') toggleAutoplay();
     else if (a === 'speed') cycleSpeed();
     else if (a === 'float') toggleFloatWidget();
     else if (a === 'quality') toggleQuality();
@@ -2160,7 +2182,7 @@ function openNowPlayingMore() {
 }
 function syncNpMore() {
   const btn = $('#np-more');
-  if (btn) btn.classList.toggle('has-on', !!(Player.floatOn || Player.sbEnabled || Player.hq));
+  if (btn) btn.classList.toggle('has-on', !!(Player.floatOn || Player.sbEnabled || Player.hq || !Player.autoplay));
 }
 function closeModal() {
   const modal = $('#modal');
