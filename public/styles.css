@@ -697,6 +697,18 @@ html[data-theme="light"] .detail-head {
 }
 
 /* library */
+/* action row: New playlist / Import / Backup / Restore — wrap neatly instead
+   of overflowing, and fill the width on small screens */
+.lib-actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-bottom: 22px;
+}
+.lib-actions .pill-btn { flex-shrink: 0; }
+@media (max-width: 860px) {
+  .lib-actions { gap: 8px; }
+  .lib-actions .pill-btn { flex: 1 1 auto; justify-content: center; padding: 11px 14px; }
+  .lib-actions .pill-btn.primary { flex-basis: 100%; }
+}
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 6px; }
 .empty-note { color: var(--muted); font-size: 14.5px; padding: 48px 0; text-align: center; font-weight: 500; }
 
