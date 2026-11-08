@@ -360,7 +360,7 @@ html[data-theme="light"] .quick-card:hover { background: rgba(0, 0, 0, 0.09); }
 }
 .carousel-wrap { position: relative; }
 .carousel {
-  display: grid; grid-auto-flow: column; grid-auto-columns: 186px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 172px;
   gap: 0; overflow-x: auto; padding-bottom: 8px;
   scroll-snap-type: x proximity; scrollbar-width: thin;
 }
@@ -386,14 +386,14 @@ html[data-theme="light"] .car-btn {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
 }
 .card {
-  width: 186px; scroll-snap-align: start; cursor: pointer;
+  width: 172px; scroll-snap-align: start; cursor: pointer;
   padding: 12px; border-radius: var(--radius-lg);
   transition: background 0.22s, transform 0.22s;
   position: relative;
 }
 .card:hover { background: var(--card-hover); }
 .card .art {
-  position: relative; width: 162px; height: 162px; border-radius: 8px; overflow: hidden;
+  position: relative; width: 148px; height: 148px; border-radius: 8px; overflow: hidden;
   background: var(--elevated); box-shadow: var(--shadow);
 }
 .card.artist .art { border-radius: 50%; }
