@@ -478,10 +478,16 @@ function startCurrent() {
       title: s.title, artist: s.artist || '',
       artwork: s.thumbnail ? [{ src: s.thumbnail, sizes: '544x544' }] : [],
     });
-    navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
-    navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack(false));
-    navigator.mediaSession.setActionHandler('play', () => Player.yt && Player.yt.playVideo());
-    navigator.mediaSession.setActionHandler('pause', () => Player.yt && Player.yt.pauseVideo());
+    const setHandler = (action, fn) => {
+      try { navigator.mediaSession.setActionHandler(action, fn); } catch {} // ignore unsupported actions
+    };
+    setHandler('previoustrack', prevTrack);
+    setHandler('nexttrack', () => nextTrack(false));
+    // Route OS/PiP/lock-screen play & pause through the same intent-aware path
+    // as the in-app buttons, so wantPlay is set and the background-resume loop
+    // can retry a play the browser refuses while the page is hidden.
+    setHandler('play', userPlay);
+    setHandler('pause', userPause);
   }
   loadLyrics(s);
   loadSponsorBlock(s.videoId);
@@ -3206,19 +3212,19 @@ function syncPipVideo() {
 (() => {
   const video = $('#pip-video');
   if (!video) return;
-  // Short delay + re-check: closing the PiP window can pause the video first,
-  // and that must not pause the music.
+  // Fallback for browsers that drive the PiP buttons via the <video> element
+  // rather than Media Session. Play is handled immediately so it stays snappy;
+  // pause is delayed + re-checked because closing the PiP window also pauses
+  // the video, and that must NOT pause the music. userPlay/userPause are
+  // idempotent, so firing alongside the Media Session handlers is harmless.
+  video.addEventListener('play', () => {
+    if (!isSystemPipActive(video) || video.paused || !Player.yt || !Player.ready) return;
+    userPlay();
+  });
   video.addEventListener('pause', () => setTimeout(() => {
     if (!isSystemPipActive(video) || !video.paused || !Player.yt || !Player.ready) return;
-    userPause(); // deliberate pause from the PiP control; stops the resume loop
-  }, 250));
-  video.addEventListener('play', () => setTimeout(() => {
-    if (!isSystemPipActive(video) || video.paused || !Player.yt || !Player.ready) return;
-    // Play from the PiP control while in recent apps: the page is hidden, so the
-    // browser may ignore playVideo(). userPlay() sets the intent and the loop
-    // below keeps retrying until the browser allows it (or we hit the cap).
-    userPlay();
-  }, 250));
+    userPause();
+  }, 300));
   video.addEventListener('leavepictureinpicture', onPopupClosed);
   // iOS Safari reports PiP changes through this event instead
   video.addEventListener('webkitpresentationmodechanged', () => {
@@ -3230,7 +3236,7 @@ function syncPipVideo() {
    browser may refuse playVideo(). If the user wants playback (wantPlay) we keep
    retrying, capped so a browser that blocks background media isn't hammered. A
    deliberate pause clears wantPlay, so we never override the user. */
-const PIP_RESUME_MAX = 8;
+const PIP_RESUME_MAX = 20; // ~24s of retries at the 1.2s interval before giving up
 function tryPipResume() {
   if (!Player.floatOn || !Player.wantPlay) return;
   if (!Player.yt || !Player.ready) return;
