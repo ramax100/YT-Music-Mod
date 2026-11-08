@@ -290,7 +290,7 @@ html[data-theme="light"] .tb-btn { background: rgba(0, 0, 0, 0.08); color: var(-
 .tb-search:hover { background: var(--card-hover); color: var(--text); transform: scale(1.01); }
 .tb-actions { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
 #view { max-width: 1480px; margin: 0 auto; padding: 8px 24px 48px; }
-#view.view-enter { animation: fadeUp 0.38s ease; }
+#view.view-enter { animation: viewEnter 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .page-title {
   font-size: clamp(28px, 4vw, 34px);
   font-weight: 800; margin-bottom: 22px;
@@ -1155,6 +1155,8 @@ body.hq-audio #yt-player {
 }
 @keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+/* smoother, snappier page transition (Spotify-like easing) */
+@keyframes viewEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes popIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* Laptop overlay (sidebar on, NP still fullscreen): don't leave a tiny floating cover */
