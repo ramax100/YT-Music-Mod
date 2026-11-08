@@ -2663,6 +2663,8 @@ $('#mini-open').addEventListener('click', openNP);
 const openQueue = (e) => { e.stopPropagation(); openNowPlaying(); switchNPTab('queue'); };
 $('#mini-queue').addEventListener('click', openQueue);
 $('#mini-queue-m').addEventListener('click', openQueue);
+const miniLyricsBtn = $('#mini-lyrics');
+if (miniLyricsBtn) miniLyricsBtn.addEventListener('click', (e) => { e.stopPropagation(); openNowPlaying(); switchNPTab('lyrics'); });
 /* shuffle / repeat on the bar (synced with Now Playing buttons) */
 $('#mini-shuffle').addEventListener('click', (e) => {
   e.stopPropagation();
