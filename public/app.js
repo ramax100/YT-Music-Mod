@@ -181,6 +181,7 @@ const Player = {
   muted: store.get('muted', false),
   preMuteVol: store.get('vol', 100), // volume to restore after unmute
   cued: false,
+  context: '', // human label of where the queue came from (e.g. "Liked Songs")
   pending: null, // song shown in Now Playing while previous track keeps playing
   loadId: 0,
   get current() { return this.queue[this.index] || null; },
@@ -298,11 +299,12 @@ window.onYouTubeIframeAPIReady = () => {
 };
 (() => { const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
 
-function playSong(song, queue = null, index = null) {
+function playSong(song, queue = null, index = null, context = '') {
   if (!song || !song.videoId) return;
   song = normalizeSong(song);
   Player.cued = false;
   Player.pending = null;
+  Player.context = context || '';
   if (queue) {
     Player.queue = queue.map((q) => ({ ...normalizeSong(q), _user: false }));
     let idx = index ?? queue.findIndex((q) => q.videoId === song.videoId);
@@ -375,6 +377,7 @@ function persistQueue() {
       shuffle: !!Player.shuffle,
       repeat: Player.repeat || 0,
       speed: Player.speed || 1,
+      context: Player.context || '',
     });
   } catch {}
 }
@@ -386,6 +389,7 @@ function restoreQueue() {
   Player.shuffle = !!st.shuffle;
   Player.repeat = (st.repeat === 1 || st.repeat === 2) ? st.repeat : 0;
   if (typeof st.speed === 'number' && st.speed > 0) Player.speed = st.speed;
+  Player.context = typeof st.context === 'string' ? st.context : '';
   Player.cued = true;
   Player.pending = null;
   const s = Player.current;
@@ -567,6 +571,7 @@ function playPendingSong() {
   const s = Player.pending;
   if (!s || !s.videoId) return togglePlay();
   Player.pending = null;
+  Player.context = ''; // picked a standalone song — no collection context
   const userUpcoming = Player.queue.filter((q, i) => i > Player.index && q._user);
   Player.queue = [{ ...normalizeSong(s), _user: false }, ...userUpcoming];
   Player.index = 0;
@@ -888,7 +893,10 @@ function renderQueue() {
   const radio = upcoming.filter((x) => !x.q._user);
   const now = Player.current;
   let html = '';
-  html += `<div class="q-note">Your queue plays first. Radio fills in after.</div>`;
+  if (Player.context) {
+    html += `<div class="q-context">Playing from <b>${esc(Player.context)}</b></div>`;
+  }
+  html += `<div class="q-note">${Player.autoplay ? 'Your queue plays first. Radio fills in after.' : 'Your queue plays first. Autoplay is off, so playback stops when it ends.'}</div>`;
   if (now) {
     html += `<div class="q-head">Now playing</div>${trackRowHTML({ ...now, qi: Player.index }, true)}`;
   }
@@ -1807,9 +1815,9 @@ function viewLibrary(view, tab) {
   const rs = $('#btn-restore');
   if (rs) rs.addEventListener('click', openRestoreForm);
   const fp = $('#fav-play');
-  if (fp) fp.addEventListener('click', () => { const q = [...Library.favorites]; playSong(q[0], q, 0); });
+  if (fp) fp.addEventListener('click', () => { const q = [...Library.favorites]; playSong(q[0], q, 0, 'Liked Songs'); });
   const fsh = $('#fav-shuffle');
-  if (fsh) fsh.addEventListener('click', () => { const q = [...Library.favorites].sort(() => Math.random() - 0.5); playSong(q[0], q, 0); });
+  if (fsh) fsh.addEventListener('click', () => { const q = [...Library.favorites].sort(() => Math.random() - 0.5); playSong(q[0], q, 0, 'Liked Songs'); });
   $$('[data-pl]', view).forEach((el) => el.addEventListener('click', () => go(`#/localpl/${el.dataset.pl}`)));
   $$('[data-nav]', view).forEach((el) => el.addEventListener('click', () => go(el.dataset.nav)));
 }
@@ -2029,11 +2037,11 @@ function viewLocalPlaylist(view, pid) {
       });
     });
   }
-  $('#pl-play').addEventListener('click', () => pl.tracks.length && playSong(pl.tracks[0], [...pl.tracks], 0));
+  $('#pl-play').addEventListener('click', () => pl.tracks.length && playSong(pl.tracks[0], [...pl.tracks], 0, pl.name));
   $('#pl-shuffle').addEventListener('click', () => {
     if (!pl.tracks.length) return;
     const q = [...pl.tracks].sort(() => Math.random() - 0.5);
-    playSong(q[0], q, 0);
+    playSong(q[0], q, 0, pl.name);
   });
   $('#pl-rename').addEventListener('click', () => openRenamePlaylist(pid));
   $('#pl-del').addEventListener('click', () => openDeletePlaylist(pid));
@@ -2079,9 +2087,9 @@ async function viewBrowse(view, id, kind, extraParams) {
   bindItems(view);
   const toSongs = () => d.tracks.map((t) => ({ ...songFromItem(t), thumbnail: t.thumbnail || h.thumbnail }));
   const bp = $('#br-play');
-  if (bp) bp.addEventListener('click', () => { const q = toSongs(); playSong(q[0], q, 0); });
+  if (bp) bp.addEventListener('click', () => { const q = toSongs(); playSong(q[0], q, 0, h.title || ''); });
   const bs = $('#br-shuffle');
-  if (bs) bs.addEventListener('click', () => { const q = toSongs().sort(() => Math.random() - 0.5); playSong(q[0], q, 0); });
+  if (bs) bs.addEventListener('click', () => { const q = toSongs().sort(() => Math.random() - 0.5); playSong(q[0], q, 0, h.title || ''); });
   const bsv = $('#br-save');
   if (bsv) bsv.addEventListener('click', () => {
     Library.toggleSaved({
