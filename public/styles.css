@@ -30,6 +30,8 @@
   --glass: rgba(0, 0, 0, 0.4);
   --tint: 140;
   --eq: var(--accent-bright);
+  /* shared smooth easing (Spotify-like) */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: dark;
 }
 html[data-theme="light"] {
@@ -335,7 +337,7 @@ html[data-theme="light"] .tb-btn { background: rgba(0, 0, 0, 0.08); color: var(-
 .tb-search:hover { background: var(--card-hover); color: var(--text); transform: scale(1.01); }
 .tb-actions { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
 #view { max-width: 1480px; margin: 0 auto; padding: 8px 24px 48px; }
-#view.view-enter { animation: viewEnter 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+#view.view-enter { animation: viewEnter 0.34s var(--ease) both; }
 .page-title {
   font-size: clamp(28px, 4vw, 34px);
   font-weight: 800; margin-bottom: 22px;
@@ -431,10 +433,10 @@ html[data-theme="light"] .car-btn {
 .card {
   width: 172px; scroll-snap-align: start; cursor: pointer;
   padding: 12px; border-radius: var(--radius-lg);
-  transition: background 0.22s, transform 0.22s;
+  transition: background 0.25s var(--ease), transform 0.25s var(--ease);
   position: relative;
 }
-.card:hover { background: var(--card-hover); }
+.card:hover { background: var(--card-hover); transform: translateY(-2px); }
 .card .art {
   position: relative; width: 148px; height: 148px; border-radius: 8px; overflow: hidden;
   background: var(--elevated); box-shadow: var(--shadow);
@@ -990,13 +992,14 @@ body:not(.paused) .np-art-wrap { transform: scale(1.01); }
 .loading-note { color: var(--muted); text-align: center; padding: 40px 0; font-weight: 500; }
 
 /* modal */
-#modal { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.65); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+#modal { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.65); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); animation: modalFade 0.2s ease both; }
 #modal.hidden { display: none; }
+@keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
 .modal-card {
   background: var(--card-hover); border-radius: 16px; padding: 24px;
   width: min(92vw, 420px); max-height: 80vh; overflow-y: auto;
   box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
-  animation: popIn 0.22s ease;
+  animation: popIn 0.26s var(--ease) both;
 }
 .modal-card h3 { margin-bottom: 16px; font-weight: 800; letter-spacing: -0.02em; }
 .modal-card input {
@@ -1244,7 +1247,8 @@ body.hq-audio #yt-player {
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 /* smoother, snappier page transition (Spotify-like easing) */
 @keyframes viewEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes popIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.97) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
 
 /* Narrow laptop/landscape overlay (sidebar on, NP still fullscreen): don't leave a tiny floating cover */
 @media (min-width: 861px) and (max-width: 899px) {
@@ -1267,7 +1271,7 @@ body.hq-audio #yt-player {
     height: auto; align-self: stretch; border-radius: var(--radius);
     transform: none; opacity: 1; pointer-events: auto; z-index: 5;
     overflow: hidden; order: 3;
-    animation: fadeUp 0.28s ease;
+    animation: slideInRight 0.32s var(--ease) both;
   }
   #nowplaying.hidden { display: none; transform: none; }
   #nowplaying .np-inner {
