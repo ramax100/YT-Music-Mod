@@ -106,7 +106,7 @@ a { color: inherit; }
   display: flex; flex-direction: column; align-items: center;
 }
 .splash-logo {
-  width: 128px; height: 128px; object-fit: contain;
+  width: 220px; height: auto; max-width: 70vw; object-fit: contain; border-radius: 14px;
   animation: splashLogo 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
   filter: drop-shadow(0 0 36px rgba(30, 215, 96, 0.4));
 }
