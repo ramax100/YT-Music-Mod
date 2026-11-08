@@ -2847,7 +2847,8 @@ document.addEventListener('keydown', (e) => {
 /* topbar back / forward (Spotify chrome) */
 $('#nav-back').addEventListener('click', () => history.back());
 $('#nav-fwd').addEventListener('click', () => history.forward());
-$('#lib-new').addEventListener('click', () => go('#/library'));
+const libNewBtn = $('#lib-new');
+if (libNewBtn) libNewBtn.addEventListener('click', () => go('#/library'));
 /* collapse / expand the desktop sidebar (Spotify). When collapsed the library
    title acts as the expand button; otherwise it navigates to the library. */
 function setSidebarCollapsed(on) {
