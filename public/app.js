@@ -177,6 +177,8 @@ const Player = {
   sbEnabled: store.get('sb_on', true),
   hq: store.get('yt_hq', false), // false = YouTube Music audio, true = YouTube max quality
   quality: 'hd720',
+  muted: store.get('muted', false),
+  preMuteVol: store.get('vol', 100), // volume to restore after unmute
   cued: false,
   pending: null, // song shown in Now Playing while previous track keeps playing
   loadId: 0,
@@ -259,8 +261,7 @@ window.onYouTubeIframeAPIReady = () => {
     events: {
       onReady: () => {
         Player.ready = true;
-        const v = store.get('vol', 100);
-        Player.yt.setVolume(Number(v));
+        applyVolumeUI(); // apply saved volume, honoring mute state
         applyPlaybackQuality();
         try {
           const iframe = Player.yt.getIframe && Player.yt.getIframe();
@@ -1914,9 +1915,8 @@ function restoreLibrary() {
           }
           if (typeof d.settings.vol === 'number') {
             store.set('vol', d.settings.vol);
-            $('#mini-volume').value = d.settings.vol;
-            $('#np-volume').value = d.settings.vol;
-            if (Player.yt && Player.ready) Player.yt.setVolume(d.settings.vol);
+            if (d.settings.vol > 0) { Player.muted = false; store.set('muted', false); }
+            applyVolumeUI();
           }
           if (typeof d.settings.sb_on === 'boolean') {
             store.set('sb_on', d.settings.sb_on);
@@ -2479,11 +2479,51 @@ $('#mini-repeat').addEventListener('click', (e) => {
   persistQueue();
   toast(['Repeat off', 'Repeat all', 'Repeat one'][Player.repeat]);
 });
+/* ---- volume + mute (single source of truth) ---- */
+function volumeIconId(vol, muted) {
+  if (muted || vol <= 0) return 'i-volume-mute';
+  if (vol < 50) return 'i-volume-low';
+  return 'i-volume';
+}
+function applyVolumeUI() {
+  const vol = Player.muted ? 0 : Number(store.get('vol', 100));
+  if (Player.yt && Player.ready) { try { Player.yt.setVolume(vol); } catch {} }
+  const mv = $('#mini-volume'); if (mv) mv.value = vol;
+  const nv = $('#np-volume'); if (nv) nv.value = vol;
+  const icId = volumeIconId(Number(store.get('vol', 100)), Player.muted);
+  $$('#mini-mute use, #np-mute use').forEach((u) => u.setAttribute('href', '#' + icId));
+  [$('#mini-mute'), $('#np-mute')].forEach((b) => {
+    if (!b) return;
+    b.classList.toggle('on', Player.muted);
+    b.title = Player.muted ? 'Unmute (M)' : 'Mute (M)';
+  });
+}
+function toggleMute() {
+  if (!Player.muted) {
+    // mute: remember current volume, then zero it
+    Player.preMuteVol = Number(store.get('vol', 100)) || 0;
+    Player.muted = true;
+  } else {
+    // unmute: if stored volume is 0, restore to the pre-mute level (or 100)
+    Player.muted = false;
+    if (Number(store.get('vol', 100)) <= 0) store.set('vol', Player.preMuteVol > 0 ? Player.preMuteVol : 100);
+  }
+  store.set('muted', Player.muted);
+  applyVolumeUI();
+  toast(Player.muted ? 'Muted' : 'Unmuted');
+}
+/* dragging either slider sets the real volume and clears mute */
+function onVolumeInput(value) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  store.set('vol', v);
+  Player.muted = v <= 0;
+  store.set('muted', Player.muted);
+  if (v > 0) Player.preMuteVol = v;
+  applyVolumeUI();
+}
 /* volume on the bar */
-$('#mini-volume').addEventListener('input', (e) => {
-  if (Player.yt && Player.ready) Player.yt.setVolume(Number(e.target.value));
-  $('#np-volume').value = e.target.value;
-});
+$('#mini-volume').addEventListener('input', (e) => onVolumeInput(e.target.value));
+$('#mini-mute').addEventListener('click', (e) => { e.stopPropagation(); toggleMute(); });
 /* click-to-seek on the bar */
 $('#mini-bar').addEventListener('click', (e) => {
   if (Player.cued || !Player.yt || !Player.ready) return;
@@ -2540,10 +2580,8 @@ $('#np-float').addEventListener('click', toggleFloatWidget);
 $('#mini-float').addEventListener('click', (e) => { e.stopPropagation(); toggleFloatWidget(); });
 $('#np-quality').addEventListener('click', toggleQuality);
 $('#np-sb').addEventListener('click', toggleSB);
-$('#np-volume').addEventListener('input', (e) => {
-  if (Player.yt) Player.yt.setVolume(Number(e.target.value));
-  $('#mini-volume').value = e.target.value;
-});
+$('#np-volume').addEventListener('input', (e) => onVolumeInput(e.target.value));
+$('#np-mute').addEventListener('click', (e) => { e.stopPropagation(); toggleMute(); });
 $('#np-lyric-preview').addEventListener('click', () => switchNPTab('lyrics'));
 $('#np-sleep').addEventListener('click', openSleepTimer);
 const npShare = $('#np-share');
@@ -2578,6 +2616,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowLeft' && e.shiftKey) prevTrack();
   if (e.code === 'Escape') closeNowPlaying();
   if (e.code === 'KeyL') toggleTheme();
+  if (e.code === 'KeyM') toggleMute();
   if (e.code === 'KeyP') { e.preventDefault(); toggleFloatWidget(); }
 });
 
@@ -3052,8 +3091,7 @@ enableDrag($('#float-widget'));
 const savedVol = store.get('vol', 100);
 $('#mini-volume').value = savedVol;
 $('#np-volume').value = savedVol;
-$('#mini-volume').addEventListener('change', (e) => store.set('vol', Number(e.target.value)));
-$('#np-volume').addEventListener('change', (e) => store.set('vol', Number(e.target.value)));
+applyVolumeUI(); // reflect saved volume + mute state on the controls at boot
 document.addEventListener('error', (e) => {
   const el = e.target;
   if (!el || el.tagName !== 'IMG') return;
