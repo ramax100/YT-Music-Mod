@@ -181,11 +181,18 @@ const Player = {
   muted: store.get('muted', false),
   preMuteVol: store.get('vol', 100), // volume to restore after unmute
   cued: false,
+  wantPlay: false, // true while the user intends playback; false after an explicit user pause
+  bgResumeTries: 0, // how many times we tried to resume after a browser-forced pause in background
+  bgForced: false, // last pause was forced by the browser when the page went to the background
+  hiddenAt: 0, // timestamp the page last became hidden
   context: '', // human label of where the queue came from (e.g. "Liked Songs")
   pending: null, // song shown in Now Playing while previous track keeps playing
   loadId: 0,
   get current() { return this.queue[this.index] || null; },
 };
+/* background playback tuning (used by onStateChange and tryBackgroundResume) */
+const BG_RESUME_MAX = 6; // resume attempts per background session
+const BG_FORCED_WINDOW = 5000; // a pause within this many ms of hiding counts as browser-forced
 
 /* Playback uses the official YouTube IFrame.
    Default: YouTube Music audio version (official audio / ATV) at hd720.
@@ -286,6 +293,31 @@ window.onYouTubeIframeAPIReady = () => {
         }
         if (e.data === YT.PlayerState.BUFFERING) applyPlaybackQuality();
         document.body.classList.toggle('paused', e.data !== YT.PlayerState.PLAYING);
+        // 1) classify the pause before anything reads wantPlay
+        if (e.data === YT.PlayerState.PLAYING) {
+          Player.bgResumeTries = 0;
+          Player.bgForced = false;
+        } else if (e.data === YT.PlayerState.PAUSED && Player.wantPlay) {
+          if (document.hidden && Date.now() - Player.hiddenAt < BG_FORCED_WINDOW) {
+            // paused right as the page went to the background: browser-forced, resume it
+            Player.bgForced = true;
+          } else {
+            // any other pause we didn't initiate (headphones unplugged, phone call,
+            // OS media control) — respect it and stop trying to resume
+            Player.wantPlay = false;
+            Player.bgForced = false;
+          }
+        }
+        // 2) keep the lock screen / notification in sync
+        if ('mediaSession' in navigator) {
+          try {
+            if (e.data === YT.PlayerState.PLAYING) navigator.mediaSession.playbackState = 'playing';
+            else if (e.data === YT.PlayerState.PAUSED && !Player.bgForced) navigator.mediaSession.playbackState = 'paused';
+          } catch {}
+        }
+        if (e.data === YT.PlayerState.PLAYING) updateMediaPosition(true);
+        // 3) resume a browser-forced pause
+        if (Player.bgForced) tryBackgroundResume();
         renderPlayButtons();
       },
       onPlaybackQualityChange: (e) => {
@@ -446,6 +478,8 @@ function startCurrent() {
   const tryPlay = () => {
     if (loadId !== Player.loadId) return;
     if (!Player.ready) return setTimeout(tryPlay, 300);
+    Player.wantPlay = true;
+    Player.bgResumeTries = 0;
     Player.yt.loadVideoById({ videoId: s.videoId, suggestedQuality: suggestedQuality() });
     Player.yt.setPlaybackRate(Player.speed);
     Player.yt.playVideo();
@@ -472,10 +506,32 @@ function startCurrent() {
       title: s.title, artist: s.artist || '',
       artwork: s.thumbnail ? [{ src: s.thumbnail, sizes: '544x544' }] : [],
     });
-    navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
-    navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack(false));
-    navigator.mediaSession.setActionHandler('play', () => Player.yt && Player.yt.playVideo());
-    navigator.mediaSession.setActionHandler('pause', () => Player.yt && Player.yt.pauseVideo());
+    const setHandler = (action, fn) => {
+      try { navigator.mediaSession.setActionHandler(action, fn); } catch {} // unsupported action
+    };
+    setHandler('previoustrack', prevTrack);
+    setHandler('nexttrack', () => nextTrack(false));
+    setHandler('play', userPlay);
+    setHandler('pause', userPause);
+    setHandler('stop', userPause);
+    setHandler('seekto', (d) => {
+      if (!Player.yt || !Player.ready || d == null || !Number.isFinite(d.seekTime)) return;
+      Player.yt.seekTo(d.seekTime, true);
+      updateMediaPosition(true);
+    });
+    setHandler('seekbackward', (d) => {
+      if (!Player.yt || !Player.ready) return;
+      const t = (Player.yt.getCurrentTime() || 0) - ((d && d.seekOffset) || 10);
+      Player.yt.seekTo(Math.max(0, t), true);
+      updateMediaPosition(true);
+    });
+    setHandler('seekforward', (d) => {
+      if (!Player.yt || !Player.ready) return;
+      const dur = Player.yt.getDuration() || 0;
+      const t = (Player.yt.getCurrentTime() || 0) + ((d && d.seekOffset) || 10);
+      Player.yt.seekTo(dur ? Math.min(dur - 1, t) : t, true);
+      updateMediaPosition(true);
+    });
   }
   loadLyrics(s);
   loadSponsorBlock(s.videoId);
@@ -553,6 +609,18 @@ function prevTrack() {
   if (Player.index > 0) { Player.index--; startCurrent(); }
   else if (Player.yt) Player.yt.seekTo(0);
 }
+/* Explicit user play/pause. wantPlay separates a pause the user asked for
+   from a pause the browser forces when the page goes to the background. */
+function userPlay() {
+  if (!Player.yt || !Player.ready) return;
+  Player.wantPlay = true;
+  Player.bgResumeTries = 0;
+  try { Player.yt.playVideo(); } catch {}
+}
+function userPause() {
+  Player.wantPlay = false;
+  if (Player.yt && Player.ready) { try { Player.yt.pauseVideo(); } catch {} }
+}
 function togglePlay() {
   if (!Player.current) return;
   if (Player.cued) {
@@ -564,8 +632,8 @@ function togglePlay() {
   }
   if (!Player.yt || !Player.ready) return;
   const st = Player.yt.getPlayerState();
-  if (st === YT.PlayerState.PLAYING) Player.yt.pauseVideo();
-  else Player.yt.playVideo();
+  if (st === YT.PlayerState.PLAYING) userPause();
+  else userPlay();
 }
 function playPendingSong() {
   const s = Player.pending;
@@ -619,7 +687,24 @@ setInterval(() => {
   if (!isPreviewing()) updateLyricHighlight(cur);
   syncFloatProgress(pct);
   if (Player.floatOn) drawPipFrame(pct);
+  updateMediaPosition(false);
 }, 400);
+
+/* Lock-screen / notification progress bar (Media Session position state). */
+let _lastPosSync = 0;
+function updateMediaPosition(force) {
+  if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+  if (!Player.yt || !Player.ready || !Player.yt.getDuration) return;
+  const now = Date.now();
+  if (!force && now - _lastPosSync < 5000) return; // browsers extrapolate between syncs
+  const dur = Player.yt.getDuration() || 0;
+  if (!(dur > 0)) return;
+  const pos = Math.min(dur, Math.max(0, Player.yt.getCurrentTime() || 0));
+  try {
+    navigator.mediaSession.setPositionState({ duration: dur, position: pos, playbackRate: Player.speed || 1 });
+    _lastPosSync = now;
+  } catch {}
+}
 
 function renderPlayButtons() {
   const actuallyPlaying = Player.yt && Player.ready && Player.yt.getPlayerState && Player.yt.getPlayerState() === YT.PlayerState.PLAYING;
@@ -736,7 +821,7 @@ function renderLyrics() {
   const L = Player.lyrics;
   if (L.lines.length) {
     c.innerHTML = L.lines.map((l, i) => `<div class="lyric-line" data-i="${i}" data-t="${l.t}">${esc(l.text) || '♪'}</div>`).join('');
-    $$('.lyric-line', c).forEach((el) => el.addEventListener('click', () => { Player.yt.seekTo(parseFloat(el.dataset.t)); Player.yt.playVideo(); }));
+    $$('.lyric-line', c).forEach((el) => el.addEventListener('click', () => { Player.yt.seekTo(parseFloat(el.dataset.t)); userPlay(); }));
   } else if (L.plain) {
     c.innerHTML = `<div class="lyric-plain">${esc(L.plain)}</div>`;
   } else {
@@ -2328,7 +2413,7 @@ function openSleepTimer() {
     $('#np-sleep') && $('#np-sleep').classList.remove('on');
     if (m > 0) {
       Player.sleepTimer = setTimeout(() => {
-        Player.yt && Player.yt.pauseVideo();
+        userPause(); // counts as a deliberate pause, so background resume won't restart it
         Player.sleepTimer = null;
         $('#np-sleep') && $('#np-sleep').classList.remove('on');
         toast('Sleep timer: paused');
@@ -3151,16 +3236,37 @@ function toggleFloatWidget() {
   else openFloatWidget();
 }
 
-document.addEventListener('visibilitychange', () => {
-  if (!Player.floatOn || !Player.yt || !Player.ready) return;
+/* ---- background playback ----
+   Some mobile browsers pause the YouTube iframe when the tab is hidden or the
+   screen locks. If the user still wants playback (wantPlay) we resume it.
+   A user pause (button, lock-screen pause, sleep timer) clears wantPlay, so we
+   never fight the user. Retries are capped so a browser that blocks background
+   media doesn't get hammered. */
+function tryBackgroundResume() {
+  if (!Player.wantPlay || Player.cued || !Player.yt || !Player.ready || !Player.current) return;
+  const st = Player.yt.getPlayerState && Player.yt.getPlayerState();
+  // PAUSED: only resume a browser-forced pause (see onStateChange).
+  // UNSTARTED / CUED: the next track was loaded in the background but the
+  // browser didn't let it start — kick it so the queue keeps going.
+  const stalledNext = st === YT.PlayerState.UNSTARTED || st === YT.PlayerState.CUED;
+  if (!(st === YT.PlayerState.PAUSED && Player.bgForced) && !stalledNext) return;
+  if (Player.bgResumeTries >= BG_RESUME_MAX) return;
+  Player.bgResumeTries++;
   try { Player.yt.playVideo(); } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    Player.hiddenAt = Date.now();
+    // going to background: keep lock-screen controls accurate
+    updateMediaPosition(true);
+    return;
+  }
+  // back in foreground: reset the retry budget and resume if the browser cut us off
+  Player.bgResumeTries = 0;
+  tryBackgroundResume();
 });
 setInterval(() => {
-  if (!Player.floatOn || !Player.yt || !Player.ready) return;
-  const st = Player.yt.getPlayerState && Player.yt.getPlayerState();
-  if (st === 2 && document.hidden) {
-    try { Player.yt.playVideo(); } catch {}
-  }
+  if (document.hidden) tryBackgroundResume();
 }, 1500);
 
 
