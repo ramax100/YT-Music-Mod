@@ -1046,8 +1046,9 @@ async function downloadSong(song) {
       try {
         const p = await api(`/api/download-progress?progressUrl=${encodeURIComponent(st.progressUrl)}`);
         if (p.done && p.url) { url = p.url; break; }
+        // loader.to reports progress on a 0–1000 scale (1000 = done).
         const raw = Number(p.progress) || 0;
-        const pct = Math.min(99, raw > 100 ? Math.round(raw / 10) : Math.round(raw));
+        const pct = Math.min(99, Math.max(0, Math.round(raw / 10)));
         if (pct !== lastProg) {
           lastProg = pct;
           toast(pct <= 5 && p.text ? String(p.text) : `Converting "${song.title}"… ${pct}%`);

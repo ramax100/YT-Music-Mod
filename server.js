@@ -203,6 +203,50 @@ function parseSections(contents) {
   return sections;
 }
 
+/* ---------------- continuation helpers ----------------
+   Works with both the modern InnerTube format (continuationItemRenderer ->
+   continuationEndpoint.continuationCommand.token, response carries an
+   appendContinuationItemsAction/continuationItems) and the legacy
+   nextContinuationData / sectionListContinuation format. */
+function continuationCommandToken(item) {
+  return item
+    && item.continuationEndpoint
+    && item.continuationEndpoint.continuationCommand
+    && item.continuationEndpoint.continuationCommand.token;
+}
+function continuationToken(d) {
+  // modern: prefer the continuation that belongs to the sectionList (loads the
+  // next page of shelves) over one nested inside a single shelf.
+  const sl = findFirst(d, 'sectionListRenderer');
+  if (sl && Array.isArray(sl.contents)) {
+    for (const item of sl.contents) {
+      const cir = item && item.continuationItemRenderer;
+      const t = continuationCommandToken(cir);
+      if (t) return t;
+    }
+  }
+  for (const item of findAll(d, 'continuationItemRenderer')) {
+    const t = continuationCommandToken(item);
+    if (t) return t;
+  }
+  // legacy
+  const legacy = findFirst(d, 'nextContinuationData');
+  if (legacy && legacy.continuation) return legacy.continuation;
+  return null;
+}
+function continuationContents(d) {
+  // modern: appendContinuationItemsAction.continuationItems (or any continuationItems)
+  const append = findFirst(d, 'appendContinuationItemsAction');
+  if (append && Array.isArray(append.continuationItems)) return append.continuationItems;
+  // legacy: sectionListContinuation.contents
+  const legacy = findFirst(d, 'sectionListContinuation');
+  if (legacy && Array.isArray(legacy.contents)) return legacy.contents;
+  // fallback: any continuationItems array present
+  const anyItems = findFirst(d, 'continuationItems');
+  if (Array.isArray(anyItems)) return anyItems;
+  return [];
+}
+
 /* ---------------- routes ---------------- */
 const cache = new Map();
 function cached(key, ttlMs, fn) {
@@ -221,15 +265,22 @@ app.get('/api/home', async (req, res) => {
       let sections = [];
       let sl = findFirst(d, 'sectionListRenderer');
       if (sl) sections = parseSections(sl.contents);
-      // fetch a few continuations for more shelves
-      let cont = sl && sl.continuations && sl.continuations[0] && sl.continuations[0].nextContinuationData;
+      // fetch a few continuations for more shelves.
+      // The token must be sent in the POST body (`{ continuation: <token> }`),
+      // not the query string. Support both the modern InnerTube format
+      // (continuationItemRenderer -> continuationEndpoint.continuationCommand.token
+      // with an appendContinuationItemsAction response) and the legacy
+      // nextContinuationData / sectionListContinuation format.
+      let token = continuationToken(d) ||
+        (sl && sl.continuations && sl.continuations[0] && sl.continuations[0].nextContinuationData
+          && sl.continuations[0].nextContinuationData.continuation);
       let n = 0;
-      while (cont && n < 3) {
-        const d2 = await yt('browse', {}, `&ctoken=${cont.continuation}&continuation=${cont.continuation}&type=next`);
-        const slc = findFirst(d2, 'sectionListContinuation');
-        if (!slc) break;
-        sections = sections.concat(parseSections(slc.contents));
-        cont = slc.continuations && slc.continuations[0] && slc.continuations[0].nextContinuationData;
+      while (token && n < 3) {
+        const d2 = await yt('browse', { continuation: token });
+        const added = continuationContents(d2);
+        if (!added.length) break;
+        sections = sections.concat(parseSections(added));
+        token = continuationToken(d2);
         n++;
       }
       return { sections };
@@ -537,9 +588,14 @@ app.get('/api/download-progress', async (req, res) => {
   const purl = String(req.query.progressUrl || '');
   try {
     const pu = new URL(purl);
+    // Only poll over HTTPS and only on the converter's known domain family.
+    // loader.to rotates the progress host (e.g. p.savenow.to, *.oceansaver.in),
+    // so we allow-list the whole family rather than a single host — but keep it
+    // a strict allow-list to avoid turning this into an open SSRF proxy.
+    const PROGRESS_HOSTS = ['loader.to', 'savenow.to', 'affadaffa.com', 'oceansaver.in'];
     const host = pu.hostname;
-    const okHost = host === 'loader.to' || host === 'savenow.to' || host === 'affadaffa.com'
-      || host.endsWith('.loader.to') || host.endsWith('.savenow.to') || host.endsWith('.affadaffa.com');
+    const okHost = pu.protocol === 'https:'
+      && PROGRESS_HOSTS.some((h) => host === h || host.endsWith('.' + h));
     if (!okHost) {
       return res.status(400).json({ error: 'bad progress url' });
     }
