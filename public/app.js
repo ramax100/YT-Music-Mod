@@ -2848,7 +2848,24 @@ document.addEventListener('keydown', (e) => {
 $('#nav-back').addEventListener('click', () => history.back());
 $('#nav-fwd').addEventListener('click', () => history.forward());
 $('#lib-new').addEventListener('click', () => go('#/library'));
-$('#lib-title-btn').addEventListener('click', () => go('#/library'));
+/* collapse / expand the desktop sidebar (Spotify). When collapsed the library
+   title acts as the expand button; otherwise it navigates to the library. */
+function setSidebarCollapsed(on) {
+  document.body.classList.toggle('lib-collapsed', !!on);
+  store.set('lib_collapsed', !!on);
+  const btn = $('#lib-collapse');
+  if (btn) btn.title = on ? 'Expand library' : 'Collapse library';
+}
+const libCollapseBtn = $('#lib-collapse');
+if (libCollapseBtn) libCollapseBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setSidebarCollapsed(!document.body.classList.contains('lib-collapsed'));
+});
+$('#lib-title-btn').addEventListener('click', () => {
+  if (document.body.classList.contains('lib-collapsed')) setSidebarCollapsed(false);
+  else go('#/library');
+});
+if (store.get('lib_collapsed', false)) setSidebarCollapsed(true);
 const sideQBtn = $('#side-queue-btn');
 if (sideQBtn) sideQBtn.addEventListener('click', () => { openNowPlaying(); switchNPTab('queue'); });
 const sideQClr = $('#side-q-clear');
