@@ -152,14 +152,22 @@ body.lib-collapsed #sidebar .lib-scroll,
 body.lib-collapsed #sidebar #side-q-clear,
 body.lib-collapsed #sidebar #lib-expand,
 body.lib-collapsed #sidebar #side-queue-btn span { display: none !important; }
-/* center the remaining icons */
-body.lib-collapsed #sidebar .side-box { padding: 10px 8px; }
-body.lib-collapsed #sidebar .logo { justify-content: center; padding: 8px 0 12px; }
+/* collapsed layout: neat, centered, icon-only */
+body.lib-collapsed #sidebar .side-box { padding: 8px 0; }
+body.lib-collapsed #sidebar .logo { justify-content: center; padding: 6px 0 10px; }
+body.lib-collapsed #sidebar .logo-img { margin: 0; }
+body.lib-collapsed #sidebar #nav-desktop { gap: 4px; align-items: center; }
 body.lib-collapsed #sidebar .nav-item,
-body.lib-collapsed #sidebar .lib-title { justify-content: center; gap: 0; }
-body.lib-collapsed #sidebar .lib-head { justify-content: center; }
-/* the Queue box has no icon-only value collapsed; just show its button centered */
-body.lib-collapsed #sidebar .q-box { flex: 0 0 auto; max-height: none; }
+body.lib-collapsed #sidebar .lib-title {
+  justify-content: center; gap: 0; width: 48px; height: 48px;
+  margin: 0 auto; padding: 0; border-radius: 8px;
+}
+body.lib-collapsed #sidebar .lib-head { justify-content: center; padding: 0; }
+body.lib-collapsed #sidebar .nav-item .ic,
+body.lib-collapsed #sidebar .lib-title .ic { width: 24px; height: 24px; }
+/* boxes shrink to fit their single icon instead of stretching to fill height */
+body.lib-collapsed #sidebar .q-box,
+body.lib-collapsed #sidebar .lib-box { flex: 0 0 auto; max-height: none; min-height: 0; overflow: visible; }
 .side-box {
   background: var(--main-bg);
   border-radius: var(--radius);
