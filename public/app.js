@@ -2693,6 +2693,26 @@ function switchNPTab(name) {
 }
 $$('.np-tab').forEach((t) => t.addEventListener('click', () => switchNPTab(t.dataset.nptab)));
 
+/* ---- karaoke (big lyrics) mode ---- */
+function applyKaraoke() {
+  const on = !!store.get('karaoke', false);
+  const pane = $('#np-lyrics');
+  if (pane) pane.classList.toggle('karaoke', on);
+  const btn = $('#lyrics-karaoke');
+  if (btn) {
+    btn.classList.toggle('on', on);
+    btn.title = on ? 'Karaoke mode on — tap for normal lyrics' : 'Karaoke mode — bigger lyrics';
+  }
+}
+function toggleKaraoke() {
+  store.set('karaoke', !store.get('karaoke', false));
+  applyKaraoke();
+  lastLyricIdx = -2; // force re-highlight/scroll with the new sizing
+  toast(store.get('karaoke', false) ? 'Karaoke mode on' : 'Karaoke mode off');
+}
+const karaokeBtn = $('#lyrics-karaoke');
+if (karaokeBtn) karaokeBtn.addEventListener('click', toggleKaraoke);
+
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
@@ -3176,6 +3196,7 @@ const savedVol = store.get('vol', 100);
 $('#mini-volume').value = savedVol;
 $('#np-volume').value = savedVol;
 applyVolumeUI(); // reflect saved volume + mute state on the controls at boot
+applyKaraoke(); // restore karaoke (big lyrics) preference
 document.addEventListener('error', (e) => {
   const el = e.target;
   if (!el || el.tagName !== 'IMG') return;
