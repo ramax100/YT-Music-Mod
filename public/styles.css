@@ -675,9 +675,9 @@ html[data-theme="light"] .detail-head {
   font-weight: 800; font-size: 17px; letter-spacing: -0.02em; color: #fff;
   background: var(--mc, #535353); cursor: pointer; border: none; text-align: left;
   display: flex; align-items: flex-start;
-  transition: transform 0.18s, filter 0.18s;
+  transition: transform 0.22s var(--ease), filter 0.22s var(--ease);
 }
-.mood-card:hover { transform: scale(1.04); filter: brightness(1.08); }
+.mood-card:hover { transform: scale(1.035); filter: brightness(1.08); }
 .mood-card::after {
   content: "♪"; position: absolute; right: -6px; bottom: -10px;
   font-size: 64px; opacity: 0.28; transform: rotate(22deg);
@@ -698,8 +698,10 @@ html[data-theme="light"] .detail-head {
   padding: 0 16px; z-index: 40; gap: 16px;
   border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
   transition: background-image 0.5s ease;
+  animation: slideUpBar 0.34s var(--ease) both;
 }
-#miniplayer.hidden { display: none; }
+#miniplayer.hidden { display: none; animation: none; }
+@keyframes slideUpBar { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: none; } }
 body.has-player #main, body.has-player #sidebar { margin-bottom: var(--player-h); }
 body.np-open.has-player #nowplaying { margin-bottom: var(--player-h); }
 
@@ -790,7 +792,7 @@ body.np-open.has-player #nowplaying { margin-bottom: var(--player-h); }
     linear-gradient(180deg, rgba(var(--np-accent, 30, 30, 30), 0.55) 0%, rgba(18, 18, 18, 0.9) 55%, #121212 100%),
     #121212;
   color: #fff;
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease, background 0.6s ease;
+  transition: transform 0.42s var(--ease), opacity 0.32s var(--ease), background 0.6s ease;
 }
 #nowplaying.hidden { transform: translateY(100%); pointer-events: none; opacity: 0; }
 #np-bg {
