@@ -147,8 +147,7 @@ body.lib-collapsed #sidebar .sidebar-footer,
 body.lib-collapsed #sidebar #side-queue,
 body.lib-collapsed #sidebar #lib-list,
 body.lib-collapsed #sidebar .lib-controls,
-body.lib-collapsed #sidebar #side-q-clear,
-body.lib-collapsed #sidebar #lib-new { display: none; }
+body.lib-collapsed #sidebar #side-q-clear { display: none; }
 /* center the remaining icons */
 body.lib-collapsed #sidebar .side-box { padding: 10px 8px; }
 body.lib-collapsed #sidebar .logo { justify-content: center; padding: 8px 0 12px; }
@@ -219,10 +218,10 @@ body.lib-collapsed #lib-collapse .ic { transform: scaleX(-1); }
 }
 .lib-title:hover { color: var(--text); }
 .lib-title .ic { width: 24px; height: 24px; }
-#lib-new, #side-q-clear { color: var(--muted); }
+#lib-collapse, #side-q-clear { color: var(--muted); }
 #side-q-clear.hidden { display: none !important; }
-#lib-new:hover { color: var(--text); background: var(--hover); }
-#lib-new .ic { width: 18px; height: 18px; }
+#lib-collapse:hover { color: var(--text); background: var(--hover); }
+#lib-collapse .ic { width: 18px; height: 18px; }
 #lib-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .lib-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .lib-controls {
