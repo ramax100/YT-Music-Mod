@@ -135,7 +135,30 @@ a { color: inherit; }
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+  transition: width 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* ---- collapsed sidebar (Spotify desktop) : icons only ---- */
+body.lib-collapsed #sidebar { width: 72px; }
+/* hide all the text labels, keep icons */
+body.lib-collapsed #sidebar .logo span,
+body.lib-collapsed #sidebar .nav-item span,
+body.lib-collapsed #sidebar .lib-title span,
+body.lib-collapsed #sidebar .sidebar-footer,
+body.lib-collapsed #sidebar #side-queue,
+body.lib-collapsed #sidebar #lib-list,
+body.lib-collapsed #sidebar .lib-controls,
+body.lib-collapsed #sidebar #side-q-clear,
+body.lib-collapsed #sidebar #lib-new { display: none; }
+/* center the remaining icons */
+body.lib-collapsed #sidebar .side-box { padding: 10px 8px; }
+body.lib-collapsed #sidebar .logo { justify-content: center; padding: 8px 0 12px; }
+body.lib-collapsed #sidebar .nav-item,
+body.lib-collapsed #sidebar .lib-title { justify-content: center; gap: 0; }
+body.lib-collapsed #sidebar .lib-head { justify-content: center; }
+/* the Queue box has no icon-only value collapsed; just show its button centered */
+body.lib-collapsed #sidebar .q-box { flex: 0 0 auto; max-height: none; }
+/* flip the collapse arrow to point the other way when collapsed */
+body.lib-collapsed #lib-collapse .ic { transform: scaleX(-1); }
 .side-box {
   background: var(--main-bg);
   border-radius: var(--radius);
